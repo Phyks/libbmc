@@ -35,10 +35,10 @@ def get_bibtex(isbn):
     :param isbn: ISBN to fetch BibTeX entry for.
     :returns: A BibTeX string.
     """
-    return doi.get_bibtex(to_doi(isbn))
+    return doi.get_bibtex(to_DOI(isbn))
 
 
-def to_doi(isbn):
+def to_DOI(isbn):
     """
     Try to fetch a DOI from a given ISBN.
 

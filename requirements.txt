@@ -1,2 +1,3 @@
-isbnlib==3.5.7
-requests==2.9.1
+arxiv2bib>=1.0.7
+isbnlib>=3.5.7
+requests>=2.9.1

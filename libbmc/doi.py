@@ -4,14 +4,16 @@ This file contains all the DOI-related functions.
 import re
 import requests
 
+from requests.exception import RequestException
+
 from libbmc import tools
 
 # Taken from
 # https://stackoverflow.com/questions/27910/finding-a-doi-in-a-document-or-page/10324802#10324802
-regex = re.compile(r"\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?![\"&\'<>])\S)+)\b",
+REGEX = re.compile(r"\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?![\"&\'<>])\S)+)\b",
                    re.IGNORECASE)
 # Base dx.doi.org URL for redirections
-dx_url = "http://dx.doi.org/{doi}"
+DX_URL = "http://dx.doi.org/{doi}"
 
 
 def is_valid(doi):
@@ -21,7 +23,7 @@ def is_valid(doi):
     :param doi: The DOI to be checked.
     :returns: Boolean indicating whether the DOI is valid or not.
     """
-    match = regex.match(doi)
+    match = REGEX.match(doi)
     return ((match is not None) and (match.group(0) == doi))
 
 
@@ -32,7 +34,7 @@ def extract_from_text(text):
     :param text: The text to extract DOIs from.
     :returns: A list of found DOIs.
     """
-    return tools.remove_duplicates(regex.findall(text))
+    return tools.remove_duplicates(REGEX.findall(text))
 
 
 def to_URL(dois):
@@ -43,9 +45,9 @@ def to_URL(dois):
     :returns: A list of DOIs URLs.
     """
     if isinstance(dois, list):
-        return [dx_url.format(doi=doi) for doi in dois]
+        return [DX_URL.format(doi=doi) for doi in dois]
     else:
-        return dx_url.format(doi=dois)
+        return DX_URL.format(doi=dois)
 
 
 def to_canonical(urls):
@@ -73,13 +75,13 @@ def get_oa_version(doi):
     :returns: The URL of the OA version of the given DOI, or ``None``.
     """
     # If DOI is a link, truncate it
-    r = requests.get("http://beta.dissem.in/api/%s" % (doi,))
     try:
-        assert(r.status_code == requests.codes.ok)
+        r = requests.get("http://beta.dissem.in/api/%s" % (doi,))
+        r.raise_for_status()
         result = r.json()
         assert(result["status"] == "ok")
         return result["paper"]["pdf_url"]
-    except (AssertionError, ValueError, KeyError):
+    except (AssertionError, ValueError, KeyError, RequestException):
         return None
 
 
@@ -90,8 +92,11 @@ def get_linked_version(doi):
     :param doi: A canonical DOI.
     :returns: The canonical URL behind the DOI, or ``None``.
     """
-    r = requests.head(to_URL(doi))
-    return r.headers.get("location")
+    try:
+        r = requests.head(to_URL(doi))
+        return r.headers.get("location")
+    except RequestException:
+        return None
 
 
 def get_bibtex(doi):
@@ -105,9 +110,11 @@ def get_bibtex(doi):
     :param doi: The canonical DOI to get BibTeX from.
     :returns: A BibTeX string or ``None``.
     """
-    r = requests.get(to_URL(doi),
-                     headers={"accept": "application/x-bibtex"})
-    if r.headers.get("content-type") == "application/x-bibtex":
+    try:
+        r = requests.get(to_URL(doi),
+                         headers={"accept": "application/x-bibtex"})
+        r.raise_for_status()
+        assert(r.headers.get("content-type") == "application/x-bibtex")
         return r.text
-    else:
+    except (RequestException, AssertionError):
         return None

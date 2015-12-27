@@ -1,17 +1,23 @@
 """
 This file contains all the arXiv-related functions.
 """
+import arxiv2bib
 import io
 import re
 import requests
 import tarfile
 import xml.etree.ElementTree
 
+from urllib.error import HTTPError
+from requests.exception import RequestException
+
+
 from libbmc import tools
+from libbmc.citations import bbl
 
 
-arxiv_identifier_from_2007 = r"\d{4}\.\d{4,5}(v\d+)?"
-arxiv_identifier_before_2007 = r"(" + ("|".join([
+ARXIV_IDENTIFIER_FROM_2007 = r"\d{4}\.\d{4,5}(v\d+)?"
+ARXIV_IDENTIFIER_BEFORE_2007 = r"(" + ("|".join([
     "astro-ph.GA",
     "astro-ph.CO",
     "astro-ph.EP",
@@ -159,15 +165,15 @@ arxiv_identifier_before_2007 = r"(" + ("|".join([
     "stat.ME",
     "stat.OT",
     "stat.TH"])) + r")/\d+"
-regex = re.compile(
-    "(" + arxiv_identifier_from_2007 + ")|(" +
-    arxiv_identifier_before_2007 + ")",
+REGEX = re.compile(
+    "(" + ARXIV_IDENTIFIER_FROM_2007 + ")|(" +
+    ARXIV_IDENTIFIER_BEFORE_2007 + ")",
     re.IGNORECASE)
 
 # Base arXiv URL used as id sometimes
-arxiv_url = "http://arxiv.org/abs/{arxiv_id}"
+ARXIV_URL = "http://arxiv.org/abs/{arxiv_id}"
 # Eprint URL used to download sources
-arxiv_eprint_url = "http://arxiv.org/e-print/{arxiv_id}"
+ARXIV_EPRINT_URL = "http://arxiv.org/e-print/{arxiv_id}"
 
 
 def is_valid(arxiv_id):
@@ -177,15 +183,35 @@ def is_valid(arxiv_id):
     :param arxiv_id: The arXiv ID to be checked.
     :returns: Boolean indicating whether the arXiv ID is valid or not.
     """
-    match = regex.match(arxiv_id)
+    match = REGEX.match(arxiv_id)
     return ((match is not None) and (match.group(0) == arxiv_id))
 
 
 def get_bibtex(arxiv_id):
     """
-    TODO
+    Get a BibTeX entry for a given DOI.
+
+    .. note::
+
+        Using awesome https://pypi.python.org/pypi/arxiv2bib/ module.
+
+    :param arxiv_id: The canonical arXiv id to get BibTeX from.
+    :returns: A BibTeX string or ``None``.
     """
-    assert(False)
+    # Fetch bibtex using arxiv2bib module
+    try:
+        bibtex = arxiv2bib.arxiv2bib([arxiv_id])
+    except HTTPError:
+        bibtex = []
+
+    for bib in bibtex:
+        if isinstance(bib, arxiv2bib.ReferenceErrorInfo):
+            continue
+        else:
+            # Return fetched bibtex
+            return bib.bibtex()
+    # An error occurred, return None
+    return None
 
 
 def extract_from_text(text):
@@ -195,7 +221,7 @@ def extract_from_text(text):
     :param text: The text to extract arXiv IDs from.
     :returns: A list of matching arXiv IDs.
     """
-    return tools.remove_duplicates(regex.findall(text))
+    return tools.remove_duplicates(REGEX.findall(text))
 
 
 def to_URL(arxiv_ids):
@@ -206,9 +232,9 @@ def to_URL(arxiv_ids):
     :returns: A list of DOIs URLs.
     """
     if isinstance(arxiv_ids, list):
-        return [arxiv_url.format(arxiv_id=arxiv_id) for arxiv_id in arxiv_ids]
+        return [ARXIV_URL.format(arxiv_id=arxiv_id) for arxiv_id in arxiv_ids]
     else:
-        return arxiv_url.format(arxiv_id=arxiv_ids)
+        return ARXIV_URL.format(arxiv_id=arxiv_ids)
 
 
 def to_canonical(urls):
@@ -236,11 +262,15 @@ def from_doi(doi):
     :param doi: The DOI of the resource to look for.
     :returns: The arXiv eprint id, or ``None`` if not found.
     """
-    r = requests.get("http://export.arxiv.org/api/query",
-                     params={
-                         "search_query": "doi:%s" % (doi,),
-                         "max_results": 1
-                     })
+    try:
+        r = requests.get("http://export.arxiv.org/api/query",
+                         params={
+                             "search_query": "doi:%s" % (doi,),
+                             "max_results": 1
+                         })
+        r.raise_for_status()
+    except RequestException:
+        return None
     e = xml.etree.ElementTree.fromstring(r.content)
     for entry in e.iter("{http://www.w3.org/2005/Atom}entry"):
         id = entry.find("{http://www.w3.org/2005/Atom}id").text
@@ -250,7 +280,7 @@ def from_doi(doi):
     return None
 
 
-def to_doi(arxiv_id):
+def to_DOI(arxiv_id):
     """
     Get the associated DOI for a given arXiv eprint.
 
@@ -262,11 +292,15 @@ def to_doi(arxiv_id):
     :param eprint: The arXiv eprint id.
     :returns: The DOI if any, or ``None``.
     """
-    r = requests.get("http://export.arxiv.org/api/query",
-                     params={
-                         "id_list": arxiv_id,
-                         "max_results": 1
-                     })
+    try:
+        r = requests.get("http://export.arxiv.org/api/query",
+                         params={
+                             "id_list": arxiv_id,
+                             "max_results": 1
+                         })
+        r.raise_for_status()
+    except RequestException:
+        return None
     e = xml.etree.ElementTree.fromstring(r.content)
     for entry in e.iter("{http://www.w3.org/2005/Atom}entry"):
         doi = entry.find("{http://arxiv.org/schemas/atom}doi")
@@ -284,12 +318,12 @@ def get_sources(arxiv_id):
     :returns: A ``TarFile`` object of the sources of the arXiv preprint or \
             ``None``.
     """
-    r = requests.get(arxiv_eprint_url.format(arxiv_id=arxiv_id))
     try:
-        assert(r.status_code == requests.codes.ok)
+        r = requests.get(ARXIV_EPRINT_URL.format(arxiv_id=arxiv_id))
+        r.raise_for_status()
         file_object = io.BytesIO(r.content)
         return tarfile.open(fileobj=file_object)
-    except (AssertionError, tarfile.TarError):
+    except (RequestException, AssertionError, tarfile.TarError):
         return None
 
 
@@ -297,8 +331,8 @@ def get_bbl(arxiv_id):
     """
     Get the .bbl files (if any) of a given preprint.
 
-    :param eprint: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in a \
-            canonical form.
+    :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
+            a canonical form.
     :returns: A list of the full text of the ``.bbl`` files (if any) \
             or ``None``.
     """
@@ -311,6 +345,16 @@ def get_bbl(arxiv_id):
 
 def get_citations(arxiv_id):
     """
-    TODO
+    Get the DOIs cited by a given preprint.
+
+    :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
+            a canonical form.
+    :returns: A dict of cleaned plaintext citations and their associated DOI.
     """
-    assert(False)
+    dois = {}
+    # Get the list of bbl files for this preprint
+    bbl_files = get_bbl(arxiv_id)
+    for bbl_file in bbl_files:
+        # Fetch the cited DOIs for each of the bbl files
+        dois.update(bbl.get_cited_DOIs(bbl_file))
+    return dois
