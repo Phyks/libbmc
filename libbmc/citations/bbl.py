@@ -1,27 +1,19 @@
 """
-This files contains all the functions to deal with .bbl files.
+This files contains all the functions to extract DOIs of citations from .bbl
+files.
 """
 import os
 import re
-import requests
 import subprocess
 
-from requests.exception import RequestException
-
-from libbmc import doi
 from libbmc import tools
-from libbmc.repositories import arxiv
+from libbmc.citations import bbl
 
 
 # Regex to match bibitems
 BIBITEMS_REGEX = re.compile(r"\\bibitem\{.+?\}")
 # Regex to match end of bibliography
 ENDTHEBIBLIOGRAPHY_REGEX = re.compile(r"\\end\{thebibliography}.*")
-
-
-# CrossRef API URL
-CROSSREF_LINKS_API_URL = "http://search.crossref.org/links"
-CROSSREF_MAX_BATCH_SIZE = 10
 
 
 def bibitem_as_plaintext(bibitem):
@@ -75,51 +67,16 @@ def get_plaintext_citations(bbl):
     return cleaned_bbl
 
 
-def get_cited_DOIs(bbl):
+def get_cited_DOIs(bbl_input):
     """
     Get the DOIs of the papers cited in this .bbl file.
 
-    :param bbl: Either the path to a .bbl file or the content of a .bbl file.
+    :param bbl_input: Either the path to a .bbl file or the content \
+            of a .bbl file.
 
     :returns: A dict of cleaned plaintext citations and their associated DOI.
     """
-    dois = {}
-    crossref_queue = []
     # Get the plaintext citations from the bbl file
-    plaintext_citations = get_plaintext_citations(bbl)
-    # Try to get the DOI directly from the citation
-    for citation in plaintext_citations[:]:
-        # Some citations already contain a DOI so try to match it directly
-        matched_DOIs = doi.extract_from_text(citation)
-        if matched_DOIs is not None:
-            # Add the DOI and go on
-            dois[citation] = matched_DOIs[0]
-            continue
-        # Same thing for arXiv id
-        matched_arXiv = arxiv.extract_from_text(citation)
-        if matched_arXiv is not None:
-            # Add the associated DOI and go on
-            dois[citation] = arxiv.to_DOI(matched_arXiv[0])
-            continue
-        # If no match found, stack it for next step
-        # Note to remove URLs in the citation as the plaintext citations can
-        # contain URLs and they are bad for the CrossRef API.
-        crossref_queue.append(tools.remove_URLs(citation))
-    # Do batch of papers, to prevent from the timeout of crossref
-    for batch in tools.batch(crossref_queue, CROSSREF_MAX_BATCH_SIZE):
-        try:
-            # Fetch results from CrossRef
-            r = requests.post(CROSSREF_LINKS_API_URL, json=batch)
-            for result in r.json()["results"]:
-                # Try to get a DOI
-                try:
-                    dois[result["text"]] = result["doi"]
-                except KeyError:
-                    # Or set it to None
-                    dois[result["text"]] = None
-        except (RequestException, ValueError, KeyError):
-            # If an exception occurred, set all the DOIs to None for the
-            # current batch
-            for i in batch:
-                dois[i] = None
-    return dois
+    plaintext_citations = get_plaintext_citations(bbl_input)
+    # Use the plaintext citations parser on these citations
+    return bbl.get_cited_DOIs(plaintext_citations)
