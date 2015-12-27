@@ -33,14 +33,27 @@ def get_bibtex(isbn):
     Get a BibTeX string for the given ISBN.
 
     :param isbn: ISBN to fetch BibTeX entry for.
-    :returns: A BibTeX string.
+    :returns: A BibTeX string or ``None`` if could not fetch it.
     """
-    return doi.get_bibtex(to_DOI(isbn))
+    # Try to find the BibTeX using associated DOIs
+    bibtex = doi.get_bibtex(to_DOI(isbn))
+    if bibtex is None:
+        # In some cases, there are no DOIs for a given ISBN. In this case, try
+        # to fetch bibtex directly from the ISBN, using a combination of
+        # Google Books and worldcat.org results.
+        bibtex = isbnlib.registry.bibformatters['bibtex'](
+            isbnlib.meta(isbn, 'default'))
+    return bibtex
 
 
 def to_DOI(isbn):
     """
-    Try to fetch a DOI from a given ISBN.
+    Make a DOI out of the given ISBN.
+
+    .. note::
+
+        See https://github.com/xlcnd/isbnlib#note. The returned DOI may not be
+        issued yet.
 
     :param isbn: A valid ISBN string.
     :returns: A DOI as string.
@@ -48,8 +61,23 @@ def to_DOI(isbn):
     return isbnlib.doi(isbn)
 
 
-def from_doi(doi):
+def from_DOI(doi):
     """
-    TODO
+    Make an ISBN out of the given DOI.
+
+    .. note::
+
+        Taken from
+        https://github.com/xlcnd/isbnlib/issues/30#issuecomment-167444777.
+
+
+    .. note::
+
+        See https://github.com/xlcnd/isbnlib#note. The returned ISBN may not be
+        issued yet (it is a valid one, but not necessary corresponding to a
+        valid book).
+
+    :param doi: A valid canonical DOI.
+    :returns: An ISBN string.
     """
-    assert(False)
+    return "".join(c for c in doi[2:] if c in "0123456789xX")

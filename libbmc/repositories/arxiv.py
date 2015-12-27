@@ -250,7 +250,7 @@ def to_canonical(urls):
         return extract_from_text(urls)
 
 
-def from_doi(doi):
+def from_DOI(doi):
     """
     Get the arXiv eprint id for a given DOI.
 
