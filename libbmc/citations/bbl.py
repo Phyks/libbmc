@@ -7,7 +7,7 @@ import re
 import subprocess
 
 from libbmc import tools
-from libbmc.citations import bbl
+from libbmc.citations import plaintext
 
 
 # Regex to match bibitems
@@ -18,7 +18,7 @@ ENDTHEBIBLIOGRAPHY_REGEX = re.compile(r"\\end\{thebibliography}.*")
 
 def bibitem_as_plaintext(bibitem):
     """
-    Return a plaintext representation of the bibitem from the ``.bbl`` file.
+    Return a plaintext representation of a bibitem from the ``.bbl`` file.
 
     .. note::
 
@@ -67,16 +67,16 @@ def get_plaintext_citations(bbl):
     return cleaned_bbl
 
 
-def get_cited_DOIs(bbl_input):
+def get_cited_DOIs(bbl):
     """
-    Get the DOIs of the papers cited in this .bbl file.
+    Get the DOIs of the papers cited in a .bbl file.
 
-    :param bbl_input: Either the path to a .bbl file or the content \
+    :param bbl: Either the path to a .bbl file or the content \
             of a .bbl file.
 
     :returns: A dict of cleaned plaintext citations and their associated DOI.
     """
     # Get the plaintext citations from the bbl file
-    plaintext_citations = get_plaintext_citations(bbl_input)
+    plaintext_citations = get_plaintext_citations(bbl)
     # Use the plaintext citations parser on these citations
-    return bbl.get_cited_DOIs(plaintext_citations)
+    return plaintext.get_cited_DOIs(plaintext_citations)

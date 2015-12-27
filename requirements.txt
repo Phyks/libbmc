@@ -1,3 +1,4 @@
 arxiv2bib>=1.0.7
+bibtexparser>=0.6.2
 isbnlib>=3.5.7
 requests>=2.9.1
