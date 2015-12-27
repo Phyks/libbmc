@@ -1,0 +1,6 @@
+[submodule "libbmc/external/opendetex"]
+	path = libbmc/external/opendetex
+	url = https://github.com/Phyks/opendetex
+[submodule "libbmc/external/poppler"]
+	path = libbmc/external/poppler
+	url = git://git.freedesktop.org/git/poppler/poppler
