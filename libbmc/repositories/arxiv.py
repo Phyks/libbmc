@@ -313,6 +313,11 @@ def get_sources(arxiv_id):
     """
     Download sources on arXiv for a given preprint.
 
+    .. note::
+
+        Bulk download of sources from arXiv is not permitted by their API. \
+                You should have a look at http://arxiv.org/help/bulk_data_s3.
+
     :param eprint: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in a \
             canonical form.
     :returns: A ``TarFile`` object of the sources of the arXiv preprint or \
@@ -331,6 +336,11 @@ def get_bbl(arxiv_id):
     """
     Get the .bbl files (if any) of a given preprint.
 
+    .. note::
+
+        Bulk download of sources from arXiv is not permitted by their API. \
+                You should have a look at http://arxiv.org/help/bulk_data_s3.
+
     :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
             a canonical form.
     :returns: A list of the full text of the ``.bbl`` files (if any) \
@@ -346,6 +356,11 @@ def get_bbl(arxiv_id):
 def get_citations(arxiv_id):
     """
     Get the DOIs cited by a given preprint.
+
+    .. note::
+
+        Bulk download of sources from arXiv is not permitted by their API. \
+                You should have a look at http://arxiv.org/help/bulk_data_s3.
 
     :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
             a canonical form.
