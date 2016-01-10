@@ -77,3 +77,27 @@ def remove_URLs(text):
     :returns: The text without URLs.
     """
     return clean_whitespaces(URL_REGEX.sub("", text))
+
+
+_slugify_strip_re = re.compile(r'[^\w\s-]')
+_slugify_hyphenate_re = re.compile(r'[\s]+')
+
+
+def slugify(value):
+    """
+    Normalizes string, converts to lowercase, removes non-alpha characters,
+    and converts spaces to hyphens to have nice filenames.
+
+    From Django's "django/template/defaultfilters.py".
+    """
+    import unicodedata
+    try:
+        unicode_type = unicode
+    except NameError:
+        unicode_type = str
+    if not isinstance(value, unicode_type):
+        value = unicode_type(value)
+    value = (unicodedata.normalize('NFKD', value).
+             encode('ascii', 'ignore').decode('ascii'))
+    value = unicode_type(_slugify_strip_re.sub('', value).strip())
+    return _slugify_hyphenate_re.sub('_', value)
