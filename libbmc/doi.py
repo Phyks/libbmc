@@ -4,7 +4,7 @@ This file contains all the DOI-related functions.
 import re
 import requests
 
-from requests.exception import RequestException
+from requests.exceptions import RequestException
 
 from libbmc import tools
 
