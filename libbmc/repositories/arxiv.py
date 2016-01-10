@@ -189,7 +189,7 @@ def is_valid(arxiv_id):
 
 def get_bibtex(arxiv_id):
     """
-    Get a BibTeX entry for a given DOI.
+    Get a BibTeX entry for a given arXiv ID.
 
     .. note::
 
