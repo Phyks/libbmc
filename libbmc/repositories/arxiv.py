@@ -2,6 +2,7 @@
 This file contains all the arXiv-related functions.
 """
 import arxiv2bib
+import bibtexparser
 import io
 import re
 import requests
@@ -174,6 +175,36 @@ REGEX = re.compile(
 ARXIV_URL = "http://arxiv.org/abs/{arxiv_id}"
 # Eprint URL used to download sources
 ARXIV_EPRINT_URL = "http://arxiv.org/e-print/{arxiv_id}"
+
+
+def get_latest_version(arxiv_id):
+    """
+    Find the latest version of a given arXiv eprint.
+
+    :param arxiv_id: The arXiv ID to query.
+    :returns: The latest version on eprint as a string, or ``None``.
+    """
+    # Get updated bibtex
+    # Trick: strip the version from the arXiv id, to query updated BibTeX for
+    # the preprint and not the specific version
+    arxiv_preprint_id = strip_version(arxiv_id)
+    updated_bibtex = bibtexparser.loads(get_bibtex(arxiv_preprint_id))
+    updated_bibtex = next(updated_bibtex.entries_dict)
+
+    try:
+        return updated_bibtex["eprint"]
+    except KeyError:
+        return None
+
+
+def strip_version(arxiv_id):
+    """
+    Remove the version suffix from an arXiv id.
+
+    :param arxiv_id: The arXiv ID to strip.
+    :returns: The arXiv ID without the suffix version
+    """
+    return re.sub(r"v\d+\Z", '', arxiv_id)
 
 
 def is_valid(arxiv_id):
