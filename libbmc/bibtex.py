@@ -118,11 +118,9 @@ def delete(filename, identifier):
 
 def get(filename, ignore_fields=[]):
     """
-    Get an entry from a BibTeX file.
+    Get all entries from a BibTeX file.
 
     :param filename: The name of the BibTeX file.
-    :param identifier: An optional id of the entry to fetch, in the BibTeX \
-            file.
     :param ignore_fields: An optional list of fields to strip from the BibTeX \
             file.
 

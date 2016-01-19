@@ -10,7 +10,7 @@ import tarfile
 import xml.etree.ElementTree
 
 from urllib.error import HTTPError
-from requests.exception import RequestException
+from requests.exceptions import RequestException
 
 
 from libbmc import tools

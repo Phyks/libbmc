@@ -5,7 +5,7 @@ plaintext files.
 import os
 import requests
 
-from requests.exception import RequestException
+from requests.exceptions import RequestException
 
 from libbmc import doi
 from libbmc import tools
