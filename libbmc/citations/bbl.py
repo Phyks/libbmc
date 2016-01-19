@@ -25,6 +25,12 @@ def bibitem_as_plaintext(bibitem):
         This plaintext representation can be super ugly, contain URLs and so \
         on.
 
+    .. note::
+
+        You need to have ``delatex`` installed system-wide, or to build it in \
+                this repo, according to the ``README.md`` before using this \
+                function.
+
     :param bibitem: The text content of the bibitem.
     :returns: A cleaned plaintext citation from the bibitem.
     """

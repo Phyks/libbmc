@@ -68,7 +68,7 @@ def get_cited_DOIs(bibtex):
             BibTeX file.
     :returns: A dict of cleaned plaintext citations and their associated DOI.
     """
-    # Get the plaintext citations from the bbl file
+    # Get the plaintext citations from the bibtex file
     plaintext_citations = get_plaintext_citations(bibtex)
     # Use the plaintext citations parser on these citations
     return plaintext.get_cited_DOIs(plaintext_citations)

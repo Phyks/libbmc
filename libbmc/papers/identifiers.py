@@ -14,11 +14,17 @@ def find_identifiers(src):
     """
     Search for a valid identifier (DOI, ISBN, arXiv, HAL) in a given file.
 
-    .. note ::
+    .. note::
 
         This function returns the first matching identifier, that is the most
         likely to be relevant for this file. However, it may fail and return an
         identifier taken from the references or another paper.
+
+    .. note::
+
+        You will need to have ``pdftotext`` and/or ``djvutxt`` installed \
+                system-wide before processing files with this function.
+
 
     :params src: Path to the file to scan.
 
