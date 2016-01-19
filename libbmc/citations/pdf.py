@@ -86,14 +86,21 @@ def pdfextract(pdf_file):
                 ``gem install pdf-extract``, provided that you have a correct \
                 Ruby install on your system.
 
+    .. note::
+
+        ``pdfextract`` is full a bugs and as the time of writing this, \
+                you had to manually ``gem install pdf-reader -v 1.2.0`` \
+                before installing ``pdfextract`` or you would get errors. See \
+                `this Github issue <https://github.com/CrossRef/pdfextract/issues/23>`_.
+
     :param pdf_file: Path to the PDF file to handle.
     :returns: Raw output from ``pdfextract`` or ``None`` if an error \
             occurred. No post-processing is done. See \
             ``libbmc.citations.pdf.pdfextract_dois`` for a similar function \
             with post-processing to return DOIs.
     """
-    # Run pdf-extract
     try:
+        # Run pdf-extract
         references = subprocess.check_output(["pdf-extract",
                                               "extract", "--references",
                                               pdf_file])
