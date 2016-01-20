@@ -1,6 +1,8 @@
 libBMC
 ======
 
+This is a **WIP**.
+
 A generic Python library to manage bibliography and play with scientific
 papers.
 
