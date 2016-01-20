@@ -166,9 +166,10 @@ ARXIV_IDENTIFIER_BEFORE_2007 = r"(" + ("|".join([
     "stat.ME",
     "stat.OT",
     "stat.TH"])) + r")/\d+"
+# Regex is fully enclosed in a group for findall to match it all
 REGEX = re.compile(
-    "(" + ARXIV_IDENTIFIER_FROM_2007 + ")|(" +
-    ARXIV_IDENTIFIER_BEFORE_2007 + ")",
+    "((arxiv:)?((" + ARXIV_IDENTIFIER_FROM_2007 + ")|(" +
+    ARXIV_IDENTIFIER_BEFORE_2007 + ")))",
     re.IGNORECASE)
 
 # Base arXiv URL used as id sometimes
@@ -181,15 +182,27 @@ def get_latest_version(arxiv_id):
     """
     Find the latest version of a given arXiv eprint.
 
-    :param arxiv_id: The arXiv ID to query.
+    :param arxiv_id: The (canonical) arXiv ID to query.
     :returns: The latest version on eprint as a string, or ``None``.
+
+    >>> get_latest_version('1401.2910')
+    '1401.2910v1'
+
+    >>> get_latest_version('1401.2910v1')
+    '1401.2910v1'
+
+    >>> get_latest_version('1506.06690v1')
+    '1506.06690v2'
+
+    >>> get_latest_version('1506.06690')
+    '1506.06690v2'
     """
     # Get updated bibtex
     # Trick: strip the version from the arXiv id, to query updated BibTeX for
     # the preprint and not the specific version
     arxiv_preprint_id = strip_version(arxiv_id)
     updated_bibtex = bibtexparser.loads(get_bibtex(arxiv_preprint_id))
-    updated_bibtex = next(updated_bibtex.entries_dict)
+    updated_bibtex = next(iter(updated_bibtex.entries_dict.values()))
 
     try:
         return updated_bibtex["eprint"]
@@ -201,8 +214,14 @@ def strip_version(arxiv_id):
     """
     Remove the version suffix from an arXiv id.
 
-    :param arxiv_id: The arXiv ID to strip.
+    :param arxiv_id: The (canonical) arXiv ID to strip.
     :returns: The arXiv ID without the suffix version
+
+    >>> strip_version('1506.06690v1')
+    '1506.06690'
+
+    >>> strip_version('1506.06690')
+    '1506.06690'
     """
     return re.sub(r"v\d+\Z", '', arxiv_id)
 
@@ -213,6 +232,36 @@ def is_valid(arxiv_id):
 
     :param arxiv_id: The arXiv ID to be checked.
     :returns: Boolean indicating whether the arXiv ID is valid or not.
+
+    >>> is_valid('1506.06690')
+    True
+
+    >>> is_valid('1506.06690v1')
+    True
+
+    >>> is_valid('arXiv:1506.06690')
+    True
+
+    >>> is_valid('arXiv:1506.06690v1')
+    True
+
+    >>> is_valid('arxiv:1506.06690')
+    True
+
+    >>> is_valid('arxiv:1506.06690v1')
+    True
+
+    >>> is_valid('math.GT/0309136')
+    True
+
+    >>> is_valid('abcdf')
+    False
+
+    >>> is_valid('bar1506.06690foo')
+    False
+
+    >>> is_valid('mare.GG/0309136')
+    False
     """
     match = REGEX.match(arxiv_id)
     return ((match is not None) and (match.group(0) == arxiv_id))
@@ -228,6 +277,12 @@ def get_bibtex(arxiv_id):
 
     :param arxiv_id: The canonical arXiv id to get BibTeX from.
     :returns: A BibTeX string or ``None``.
+
+    >>> get_bibtex('1506.06690')
+    "@article{1506.06690v2,\\nAuthor        = {Lucas Verney and Lev Pitaevskii and Sandro Stringari},\\nTitle         = {Hybridization of first and second sound in a weakly-interacting Bose gas},\\nEprint        = {1506.06690v2},\\nDOI           = {10.1209/0295-5075/111/40005},\\nArchivePrefix = {arXiv},\\nPrimaryClass  = {cond-mat.quant-gas},\\nAbstract      = {Using Landau's theory of two-fluid hydrodynamics we investigate the sound\\nmodes propagating in a uniform weakly-interacting superfluid Bose gas for\\nvalues of temperature, up to the critical point. In order to evaluate the\\nrelevant thermodynamic functions needed to solve the hydrodynamic equations,\\nincluding the temperature dependence of the superfluid density, we use\\nBogoliubov theory at low temperatures and the results of a perturbative\\napproach based on Beliaev diagrammatic technique at higher temperatures.\\nSpecial focus is given on the hybridization phenomenon between first and second\\nsound which occurs at low temperatures of the order of the interaction energy\\nand we discuss explicitly the behavior of the two sound velocities near the\\nhybridization point.},\\nYear          = {2015},\\nMonth         = {Jun},\\nUrl           = {http://arxiv.org/abs/1506.06690v2},\\nFile          = {1506.06690v2.pdf}\\n}"
+
+    >>> get_bibtex('1506.06690v1')
+    "@article{1506.06690v1,\\nAuthor        = {Lucas Verney and Lev Pitaevskii and Sandro Stringari},\\nTitle         = {Hybridization of first and second sound in a weakly-interacting Bose gas},\\nEprint        = {1506.06690v1},\\nDOI           = {10.1209/0295-5075/111/40005},\\nArchivePrefix = {arXiv},\\nPrimaryClass  = {cond-mat.quant-gas},\\nAbstract      = {Using Landau's theory of two-fluid hydrodynamics we investigate the sound\\nmodes propagating in a uniform weakly-interacting superfluid Bose gas for\\nvalues of temperature, up to the critical point. In order to evaluate the\\nrelevant thermodynamic functions needed to solve the hydrodynamic equations,\\nincluding the temperature dependence of the superfluid density, we use\\nBogoliubov theory at low temperatures and the results of a perturbative\\napproach based on Beliaev diagrammatic technique at higher temperatures.\\nSpecial focus is given on the hybridization phenomenon between first and second\\nsound which occurs at low temperatures of the order of the interaction energy\\nand we discuss explicitly the behavior of the two sound velocities near the\\nhybridization point.},\\nYear          = {2015},\\nMonth         = {Jun},\\nUrl           = {http://arxiv.org/abs/1506.06690v1},\\nFile          = {1506.06690v1.pdf}\\n}"
     """
     # Fetch bibtex using arxiv2bib module
     try:
@@ -251,8 +306,12 @@ def extract_from_text(text):
 
     :param text: The text to extract arXiv IDs from.
     :returns: A list of matching arXiv IDs.
+
+    >>> sorted(extract_from_text('1506.06690 1506.06690v1 arXiv:1506.06690 arXiv:1506.06690v1 arxiv:1506.06690 arxiv:1506.06690v1 math.GT/0309136 abcdf bar1506.06690foo mare.GG/0309136'))
+    ['1506.06690', '1506.06690v1', 'arXiv:1506.06690', 'arXiv:1506.06690v1', 'arxiv:1506.06690', 'arxiv:1506.06690v1', 'math.GT/0309136']
     """
-    return tools.remove_duplicates(REGEX.findall(text))
+    return tools.remove_duplicates([i[0]
+                                    for i in REGEX.findall(text) if i[0] != ''])
 
 
 def to_URL(arxiv_ids):
@@ -261,6 +320,12 @@ def to_URL(arxiv_ids):
 
     :param dois: List of canonical DOIs.
     :returns: A list of DOIs URLs.
+
+    >>> to_URL('1506.06690')
+    'http://arxiv.org/abs/1506.06690'
+
+    >>> to_URL('1506.06690v1')
+    'http://arxiv.org/abs/1506.06690v1'
     """
     if isinstance(arxiv_ids, list):
         return [ARXIV_URL.format(arxiv_id=arxiv_id) for arxiv_id in arxiv_ids]
@@ -273,12 +338,27 @@ def to_canonical(urls):
     Convert a list of DOIs URLs to a list of canonical DOIs.
 
     :param dois: A list of DOIs URLs.
-    :returns: List of canonical DOIs.
+    :returns: List of canonical DOIs. ``None`` if an error occurred.
+
+    >>> to_canonical('http://arxiv.org/abs/1506.06690')
+    '1506.06690'
+
+    >>> to_canonical('http://arxiv.org/abs/1506.06690v1')
+    '1506.06690v1'
+
+    >>> to_canonical(['http://arxiv.org/abs/1506.06690'])
+    ['1506.06690']
+
+    >>> to_canonical('aaa') is None
+    True
     """
-    if isinstance(urls, list):
-        return [extract_from_text(url) for url in urls]
-    else:
-        return extract_from_text(urls)
+    try:
+        if isinstance(urls, list):
+            return [next(iter(extract_from_text(url))) for url in urls]
+        else:
+            return next(iter(extract_from_text(urls)))
+    except StopIteration:
+        return None
 
 
 def from_DOI(doi):
@@ -292,6 +372,9 @@ def from_DOI(doi):
 
     :param doi: The DOI of the resource to look for.
     :returns: The arXiv eprint id, or ``None`` if not found.
+
+    >>> from_DOI('10.1209/0295-5075/111/40005')
+    '1506.06690'
     """
     try:
         r = requests.get("http://export.arxiv.org/api/query",
@@ -322,6 +405,12 @@ def to_DOI(arxiv_id):
 
     :param eprint: The arXiv eprint id.
     :returns: The DOI if any, or ``None``.
+
+    >>> to_DOI('1506.06690v1')
+    '10.1209/0295-5075/111/40005'
+
+    >>> to_DOI('1506.06690')
+    '10.1209/0295-5075/111/40005'
     """
     try:
         r = requests.get("http://export.arxiv.org/api/query",
@@ -353,6 +442,8 @@ def get_sources(arxiv_id):
             canonical form.
     :returns: A ``TarFile`` object of the sources of the arXiv preprint or \
             ``None``.
+
+    # TODO: Unittests
     """
     try:
         r = requests.get(ARXIV_EPRINT_URL.format(arxiv_id=arxiv_id))
@@ -376,6 +467,8 @@ def get_bbl(arxiv_id):
             a canonical form.
     :returns: A list of the full text of the ``.bbl`` files (if any) \
             or ``None``.
+
+    # TODO: Unittests
     """
     tf = get_sources(arxiv_id)
     bbl_files = [i for i in tf.getmembers() if i.name.endswith(".bbl")]
@@ -396,6 +489,9 @@ def get_citations(arxiv_id):
     :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
             a canonical form.
     :returns: A dict of cleaned plaintext citations and their associated DOI.
+
+    >>> get_citations("1506.06690")
+    # TODO: Unittests
     """
     dois = {}
     # Get the list of bbl files for this preprint

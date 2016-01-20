@@ -1,5 +1,7 @@
 """
 This file contains functions to deal with Bibtex files and edit them.
+
+TODO: Unittests
 """
 import bibtexparser
 import re
@@ -20,7 +22,6 @@ def dict2BibTeX(data):
             ``bibtexparser`` output.
     :return: A formatted BibTeX string.
     """
-    """Convert a single bibtex entry dict to bibtex string"""
     bibtex = '@' + data['ENTRYTYPE'] + '{' + data['ID'] + ",\n"
 
     for field in [i for i in sorted(data) if i not in ['ENTRYTYPE', 'ID']]:

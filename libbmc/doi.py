@@ -105,10 +105,10 @@ def to_canonical(urls):
     """
     try:
         if isinstance(urls, list):
-            return [extract_from_text(url)[0] for url in urls]
+            return [next(iter(extract_from_text(url))) for url in urls]
         else:
-            return extract_from_text(urls)[0]
-    except IndexError:
+            return next(iter(extract_from_text(urls)))
+    except StopIteration:
         return None
 
 
