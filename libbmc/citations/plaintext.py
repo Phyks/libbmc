@@ -1,6 +1,8 @@
 """
 This files contains all the functions to extract DOIs of citations from
 plaintext files.
+
+# TODO: Unittests
 """
 import os
 import requests
@@ -57,6 +59,9 @@ def get_cited_DOIs(file):
         # It is either a path to a plaintext file or the content of a plaintext
         # file, we need some pre-processing to get a list of citations.
         plaintext_citations = get_plaintext_citations(file)
+    else:
+        # Else, we passed a list of plaintext citations.
+        plaintext_citations = file
     dois = {}
     crossref_queue = []
 
@@ -64,15 +69,15 @@ def get_cited_DOIs(file):
     for citation in plaintext_citations[:]:
         # Some citations already contain a DOI so try to match it directly
         matched_DOIs = doi.extract_from_text(citation)
-        if matched_DOIs is not None:
+        if len(matched_DOIs) > 0:
             # Add the DOI and go on
-            dois[citation] = matched_DOIs[0]
+            dois[citation] = next(iter(matched_DOIs))
             continue
         # Same thing for arXiv id
         matched_arXiv = arxiv.extract_from_text(citation)
-        if matched_arXiv is not None:
+        if len(matched_arXiv) > 0:
             # Add the associated DOI and go on
-            dois[citation] = arxiv.to_DOI(matched_arXiv[0])
+            dois[citation] = arxiv.to_DOI(next(iter(matched_arXiv)))
             continue
         # If no match found, stack it for next step
         # Note to remove URLs in the citation as the plaintext citations can
@@ -81,6 +86,7 @@ def get_cited_DOIs(file):
 
     # Do batch with remaining papers, to prevent from the timeout of CrossRef
     for batch in tools.batch(crossref_queue, CROSSREF_MAX_BATCH_SIZE):
+        batch = [i for i in batch]
         try:
             # Fetch results from CrossRef
             r = requests.post(CROSSREF_LINKS_API_URL, json=batch)

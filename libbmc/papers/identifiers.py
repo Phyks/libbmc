@@ -3,6 +3,8 @@ This file contains various functions to fetch unique identifiers from papers
 (DOIs, arXiv id etc).
 
 Needs pdftotext and/or djvutxt installed on the machine.
+
+TODO: Unittests
 """
 import subprocess
 

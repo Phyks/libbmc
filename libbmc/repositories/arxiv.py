@@ -374,6 +374,7 @@ def from_DOI(doi):
     :returns: The arXiv eprint id, or ``None`` if not found.
 
     >>> from_DOI('10.1209/0295-5075/111/40005')
+    # Note: Test do not pass due to an arXiv API bug.
     '1506.06690'
     """
     try:
@@ -490,7 +491,7 @@ def get_citations(arxiv_id):
             a canonical form.
     :returns: A dict of cleaned plaintext citations and their associated DOI.
 
-    >>> get_citations("1506.06690")
+    >>> get_citations("1401.2910")
     # TODO: Unittests
     """
     dois = {}

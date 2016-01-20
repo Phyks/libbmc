@@ -1,6 +1,8 @@
 """
 This file contains the necessary functions to determine whether we should tear
 the first page from a PDF file, and actually tear it.
+
+TODO: Unittests
 """
 import tearpages
 
