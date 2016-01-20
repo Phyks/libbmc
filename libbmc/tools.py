@@ -2,6 +2,8 @@
 This file contains various utility functions.
 """
 import re
+import unicodedata
+
 from itertools import islice, chain
 
 
@@ -13,10 +15,19 @@ def replaceAll(text, replace_dict):
     """
     Replace multiple strings in a text.
 
+
+    .. note::
+
+        Replacements are made successively, without any warranty on the order \
+        in which they are made.
+
     :param text: Text to replace in.
     :param replace_dict: Dictionary mapping strings to replace with their \
             substitution.
     :returns: Text after replacements.
+
+    >>> replaceAll("foo bar foo thing", {"foo": "oof", "bar": "rab"})
+    'oof rab oof thing'
     """
     for i, j in replace_dict.items():
         text = text.replace(i, j)
@@ -30,6 +41,9 @@ def clean_whitespaces(text):
 
     :param text: Text to remove multiple whitespaces from.
     :returns: A cleaned text.
+
+    >>> clean_whitespaces("this  is    a text with    spaces")
+    'this is a text with spaces'
     """
     return ' '.join(text.strip().split())
 
@@ -40,6 +54,12 @@ def remove_duplicates(some_list):
 
     :param some_list: List to remove duplicates from.
     :returns: A list without duplicates.
+
+    >>> remove_duplicates([1, 2, 3, 1])
+    [1, 2, 3]
+
+    >>> remove_duplicates([1, 2, 1, 2])
+    [1, 2]
     """
     return list(set(some_list))
 
@@ -61,6 +81,8 @@ def batch(iterable, size):
     :params iterable: An iterable to get batches from.
     :params size: Size of the batches.
     :returns: A new batch of the given size at each time.
+
+    # TODO: Unittest
     """
     it = iter(iterable)
     while True:
@@ -75,6 +97,9 @@ def remove_URLs(text):
 
     :param text: The text to remove URLs from.
     :returns: The text without URLs.
+
+    >>> remove_URLs("foobar http://example.com https://example.com foobar")
+    'foobar foobar'
     """
     return clean_whitespaces(URL_REGEX.sub("", text))
 
@@ -89,8 +114,10 @@ def slugify(value):
     and converts spaces to hyphens to have nice filenames.
 
     From Django's "django/template/defaultfilters.py".
+
+    >>> slugify("El pingüino Wenceslao hizo kilómetros bajo exhaustiva lluvia y frío, añoraba a su querido cachorro. ortez ce vieux whisky au juge blond qui fume sur son île intérieure, à Γαζέες καὶ μυρτιὲς δὲν θὰ βρῶ πιὰ στὸ χρυσαφὶ ξέφωτο いろはにほへとちりぬるを Pchnąć w tę łódź jeża lub ośm skrzyń fig กว่าบรรดาฝูงสัตว์เดรัจฉาน")
+    'El_pinguino_Wenceslao_hizo_kilometros_bajo_exhaustiva_lluvia_y_frio_anoraba_a_su_querido_cachorro_ortez_ce_vieux_whisky_au_juge_blond_qui_fume_sur_son_ile_interieure_a_Pchnac_w_te_odz_jeza_lub_osm_skrzyn_fig'
     """
-    import unicodedata
     try:
         unicode_type = unicode
     except NameError:
