@@ -25,6 +25,8 @@ def download(url, proxies=[None]):
     :returns: A tuple of the raw content of the downloaded data and its \
             associated content-type. Returns ``(None, None)`` if it was \
             unable to download the document.
+
+    # TODO: Unittests
     """
     # Loop over all available connections
     for proxy in proxies:
