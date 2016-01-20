@@ -13,6 +13,29 @@ def is_valid(isbn):
     :param isbn: the isbn to be checked.
     :returns: boolean indicating whether the isbn is valid or not.
 
+    >>> is_valid("978-3-16-148410-0")
+    True
+
+    >>> is_valid("9783161484100")
+    True
+
+    >>> is_valid("9783161484100aa")
+    False
+
+    >>> is_valid("abcd")
+    False
+
+    >>> is_valid("0136091814")
+    True
+
+    >>> is_valid("0136091812")
+    False
+
+    >>> is_valid("9780136091817")
+    False
+
+    >>> is_valid("123456789X")
+    True
     """
     return not isbnlib.notisbn(isbn)
 
@@ -23,9 +46,13 @@ def extract_from_text(text):
 
     :param text: Some text.
     :returns: A list of canonical ISBNs found in the text.
+
+    >>> extract_from_text("978-3-16-148410-0 9783161484100 9783161484100aa abcd 0136091814 0136091812 9780136091817 123456789X")
+    ['9783161484100', '9783161484100', '9783161484100', '0136091814', '123456789X']
     """
-    return [isbnlib.get_canonical_isbn(isbn)
-            for isbn in isbnlib.get_isbnlike(text)]
+    isbns = [isbnlib.get_canonical_isbn(isbn)
+             for isbn in isbnlib.get_isbnlike(text)]
+    return [i for i in isbns if i is not None]
 
 
 def get_bibtex(isbn):
@@ -34,6 +61,9 @@ def get_bibtex(isbn):
 
     :param isbn: ISBN to fetch BibTeX entry for.
     :returns: A BibTeX string or ``None`` if could not fetch it.
+
+    >>> get_bibtex('9783161484100')
+    '@book{9783161484100,\\n     title = {Berkeley, Oakland: Albany, Emeryville, Alameda, Kensington},\\n    author = {Peekaboo Maps},\\n      isbn = {9783161484100},\\n      year = {2009},\\n publisher = {Peek A Boo Maps}\\n}'
     """
     # Try to find the BibTeX using associated DOIs
     bibtex = doi.get_bibtex(to_DOI(isbn))
@@ -57,6 +87,9 @@ def to_DOI(isbn):
 
     :param isbn: A valid ISBN string.
     :returns: A DOI as string.
+
+    >>> to_DOI('9783161484100')
+    '10.978.316/1484100'
     """
     return isbnlib.doi(isbn)
 
@@ -79,5 +112,8 @@ def from_DOI(doi):
 
     :param doi: A valid canonical DOI.
     :returns: An ISBN string.
+
+    >>> from_DOI('10.978.316/1484100')
+    '9783161484100'
     """
     return "".join(c for c in doi[2:] if c in "0123456789xX")
