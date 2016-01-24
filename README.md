@@ -50,3 +50,37 @@ identifiers from papers PDF files.
 If you plan on using the `libbmc.citations.pdf` functions, you should also
 install the matching software (`CERMINE`, `Grobid` or `pdf-extract`). See the
 docstrings of those functions for more infos on this particular point.
+
+
+## Acknowledgements
+
+Thanks a lot to the following authors and programs for helping in building
+this lib:
+
+* Dominika Tkaczyk, Pawel Szostek, Mateusz Fedoryszak, Piotr Jan Dendek and
+Lukasz Bolikowski.
+CERMINE: automatic extraction of structured metadata from scientific
+literature.
+In International Journal on Document Analysis and Recognition (IJDAR), 2015,
+vol. 18, no. 4, pp. 317-335, doi: 10.1007/s10032-015-0249-8.
+https://github.com/CeON/CERMINE
+
+* https://github.com/CrossRef/pdfextract
+
+* https://github.com/kermitt2/grobid
+
+* https://github.com/sciunto-org/python-bibtexparser
+
+* http://djvu.sourceforge.net/doc/man/djvutxt.html
+
+* http://www.foolabs.com/xpdf/home.html
+
+* https://code.google.com/p/opendetex/
+
+* https://github.com/nathangrigg/arxiv2bib/
+
+* https://github.com/xlcnd/isbnlib
+
+* https://github.com/Anorov/PySocks
+
+* http://docs.python-requests.org/en/latest/#
