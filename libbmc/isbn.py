@@ -37,7 +37,11 @@ def is_valid(isbn):
     >>> is_valid("123456789X")
     True
     """
-    return not isbnlib.notisbn(isbn)
+    return (
+        (not isbnlib.notisbn(isbn)) and (
+            isbnlib.get_canonical_isbn(isbn) == isbn or
+            isbnlib.mask(isbnlib.get_canonical_isbn(isbn)) == isbn)
+    )
 
 
 def extract_from_text(text):

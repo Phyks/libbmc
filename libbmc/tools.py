@@ -82,7 +82,8 @@ def batch(iterable, size):
     :params size: Size of the batches.
     :returns: A new batch of the given size at each time.
 
-    # TODO: Unittest
+    >>> [list(i) for i in batch([1, 2, 3, 4, 5], 2)]
+    [[1, 2], [3, 4], [5]]
     """
     it = iter(iterable)
     while True:
