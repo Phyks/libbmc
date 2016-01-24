@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 
 from requests.exceptions import RequestException
 
+from libbmc import tools
 from libbmc.citations import plaintext
 
 
@@ -79,7 +80,7 @@ def cermine(pdf_file, force_API=False, override_local=None):
                 "java",
                 "-cp", local,
                 "pl.edu.icm.cermine.PdfNLMContentExtractor",
-                "-path", pdf_file])
+                "-path", pdf_file]).decode("utf-8")
     except (RequestException,
             subprocess.CalledProcessError,
             FileNotFoundError):
@@ -123,8 +124,21 @@ def cermine_dois(pdf_file, force_API=False, override_local=None):
             the default location (``libbmc/external/cermine.jar``).
     :returns: A dict of cleaned plaintext citations and their associated DOI.
     """
-    # TODO
-    pass
+    # TODO:
+    #    * Do not convert to plain text, but use the extra metadata from
+    #      CERMINE
+    # Call CERMINE on the PDF file
+    cermine_output = cermine(pdf_file, force_API, override_local)
+    # Parse the resulting XML
+    root = ET.fromstring(cermine_output)
+    plaintext_references = [
+        # Remove extra whitespaces
+        tools.clean_whitespaces(
+            # Convert XML element to string, discarding any leading "[n]"
+            ET.tostring(e, method="text").decode("utf-8").replace(e.text, ""))
+        for e in root.iter("mixed-citation")]
+    # Call the plaintext methods to fetch DOIs
+    return plaintext.get_cited_DOIs(plaintext_references)
 
 
 def grobid(pdf_file):
