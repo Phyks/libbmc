@@ -4,6 +4,7 @@ PDF files.
 
 # TODO: Unittests
 """
+import os
 import requests
 import subprocess
 import xml.etree.ElementTree as ET
@@ -14,34 +15,116 @@ from libbmc.citations import plaintext
 
 
 CERMINE_BASE_URL = "http://cermine.ceon.pl/"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def cermine(pdf_file):
+def cermine(pdf_file, force_API=False, override_local=None):
     """
-    Run `CERMINE <https://github.com/CeON/CERMINE>`_ to extract procedure on \
+    Run `CERMINE <https://github.com/CeON/CERMINE>`_ to extract metadata from \
             the given PDF file, to retrieve citations (and more) from the \
-            provided PDF file.
+            provided PDF file. This function returns the raw output of \
+            CERMINE call.
 
     .. note::
 
-        This uses the `CERMINE API <http://cermine.ceon.pl/about.html>`_, and \
+        Try to use a local CERMINE JAR file, and falls back to using the API. \
+                JAR file is expected to be found in \
+                ``libbmc/external/cermine.jar``. You can override this using \
+                the ``override_local`` parameter.
+
+    .. note::
+
+        CERMINE JAR file can be found at \
+                `<http://maven.icm.edu.pl/artifactory/simple/kdd-releases/pl/edu/icm/cermine/cermine-impl/>`_.
+
+    .. note::
+
+        This fallback using the \
+                `CERMINE API <http://cermine.ceon.pl/about.html>`_, and \
                 hence, uploads the PDF file (so uses network). Check out \
                 the CERMINE API terms.
 
     :param pdf_file: Path to the PDF file to handle.
+    :param force_API: Force the use of the Cermine API \
+            (and do not try to use a local JAR file). Defaults to ``False``.
+    :param override_local: Use this specific JAR file, instead of the one at \
+            the default location (``libbmc/external/cermine.jar``).
     :returns: Raw output from CERMINE API or ``None`` if an error occurred. \
             No post-processing is done.
     """
     try:
-        with open(pdf_file, "rb") as fh:
-            r = requests.post(
-                CERMINE_BASE_URL + "extract.do",
-                headers={"Content-Type": "application/binary"},
-                files={"file": fh}
-            )
-        return r.text
-    except (RequestException, FileNotFoundError):
+        # Check if we want to load the local JAR from a specific path
+        local = override_local
+        # Else, try to stat the JAR file at the expected local path
+        if (local is None) and (not force_API):
+            if os.path.isfile(os.path.join(SCRIPT_DIR,
+                                           "../external/cermine.jar")):
+                local = os.path.join(SCRIPT_DIR,
+                                     "../external/cermine.jar")
+
+        # If we want to force the API use, or we could not get a local JAR
+        if force_API or (local is None):
+            print("Using API")
+            with open(pdf_file, "rb") as fh:
+                    # Query the API
+                    r = requests.post(
+                        CERMINE_BASE_URL + "extract.do",
+                        headers={"Content-Type": "application/binary"},
+                        files={"file": fh}
+                    )
+                    return r.text
+        # Else, use the local JAR file
+        else:
+            return subprocess.check_output([
+                "java",
+                "-cp", local,
+                "pl.edu.icm.cermine.PdfNLMContentExtractor",
+                "-path", pdf_file])
+    except (RequestException,
+            subprocess.CalledProcessError,
+            FileNotFoundError):
+        # In case of any error, return None
         return None
+
+
+def cermine_dois(pdf_file, force_API=False, override_local=None):
+    """
+    Run `CERMINE <https://github.com/CeON/CERMINE>`_ to extract DOIs of cited \
+            papers from a PDF file.
+
+    .. note::
+
+        Try to use a local CERMINE JAR file, and falls back to using the API. \
+                JAR file is expected to be found in \
+                ``libbmc/external/cermine.jar``. You can override this using \
+                the ``override_local`` parameter.
+
+    .. note::
+
+        CERMINE JAR file can be found at \
+                `<http://maven.icm.edu.pl/artifactory/simple/kdd-releases/pl/edu/icm/cermine/cermine-impl/>`_.
+
+    .. note::
+
+        This fallback using the \
+                `CERMINE API <http://cermine.ceon.pl/about.html>`_, and \
+                hence, uploads the PDF file (so uses network). Check out \
+                the CERMINE API terms.
+
+    .. note::
+
+        This function uses CERMINE to extract references from the paper, and \
+                try to match them on Crossref to get DOIs.
+
+    :param pdf_file: Path to the PDF file to handle.
+    :param force_API: Force the use of the Cermine API \
+            (and do not try to use a local JAR file). Defaults to ``False``.
+    :param override_local: Use this specific JAR file, instead of the one at \
+            the default location (``libbmc/external/cermine.jar``).
+    :returns: A dict of cleaned plaintext citations and their associated DOI.
+    """
+    # TODO
+    pass
 
 
 def grobid(pdf_file):
