@@ -52,6 +52,11 @@ install the matching software (`CERMINE`, `Grobid` or `pdf-extract`). See the
 docstrings of those functions for more infos on this particular point.
 
 
+## License
+
+This code is licensed under an MIT license.
+
+
 ## Acknowledgements
 
 Thanks a lot to the following authors and programs for helping in building

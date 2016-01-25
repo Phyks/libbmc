@@ -2,3 +2,6 @@ __pycache__
 docs/build
 .cache
 libbmc/external/cermine.jar
+build/
+dist/
+*.egg-info/
