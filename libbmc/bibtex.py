@@ -1,7 +1,7 @@
 """
 This file contains functions to deal with Bibtex files and edit them.
 
-TODO: Unittests
+TODO: Unittests + use bibtexparser writer
 """
 import bibtexparser
 import re
@@ -111,7 +111,10 @@ def delete(filename, identifier):
     bibtex = bibtex.entries_dict
 
     # Delete the bibtex entry
-    del(bibtex[identifier])
+    try:
+        del(bibtex[identifier])
+    except KeyError:
+        pass
 
     # Write the resulting BibTeX
     write(filename, bibtex)
@@ -140,6 +143,41 @@ def get(filename, ignore_fields=[]):
     return bibtex
 
 
+def get_entry_by_filter(filename, filter, ignore_fields=[]):
+    """
+    Get an entry from a BibTeX file.
+
+    :param filename: The name of the BibTeX file.
+    :param filter: A function returning ``True`` or ``False`` whether the \
+            entry should be included or not.
+    :param ignore_fields: An optional list of fields to strip from the BibTeX \
+            file.
+
+    :returns: A ``bibtexparser.BibDatabase`` object representing the \
+            first matching entry. ``None`` if entry was not found.
+    """
+    # Open bibtex file
+    with open(filename, 'r', encoding="utf-8") as fh:
+        bibtex = bibtexparser.load(fh)
+    bibtex = bibtex.entries
+
+    matching_entry = None
+    try:
+        # Try to fetch the matching entry dict
+        for entry in bibtex.items:
+            if filter(entry):
+                matching_entry = entry
+    except KeyError:
+        # If none found, return None
+        return None
+
+    # Clean the entry dict if necessary
+    matching_entry = {k: matching_entry[k]
+                      for k in matching_entry if k not in ignore_fields}
+
+    return matching_entry
+
+
 def get_entry(filename, identifier, ignore_fields=[]):
     """
     Get an entry from a BibTeX file.
@@ -149,30 +187,30 @@ def get_entry(filename, identifier, ignore_fields=[]):
     :param ignore_fields: An optional list of fields to strip from the BibTeX \
             file.
 
-    :returns: A ``bibtexparser`` dict representing the fetched entry. \
-            ``None`` if entry was not found.
+    :returns: A ``bibtexparser.BibDatabase`` object representing the \
+            fetched entry. ``None`` if entry was not found.
     """
-    # Open bibtex file
-    with open(filename, 'r', encoding="utf-8") as fh:
-        bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries_dict
-
-    try:
-        # Try to fetch the matching entry dict
-        entry = bibtex[identifier]
-    except KeyError:
-        # If none found, return None
-        return None
-
-    # Clean the entry dict if necessary
-    entry = {k: entry[k] for k in entry if k not in ignore_fields}
-
-    return entry
+    return get_entry_by_filter(filename,
+                               lambda x: x["ID"] == identifier,
+                               ignore_fields)
 
 
 def to_filename(bibtex, mask=default_papers_filename_mask):
     """
     Convert a bibtex entry to a formatted filename according to a given mask.
+
+    .. note ::
+
+        Available masks out of the box are:
+            - ``journal``
+            - ``title``
+            - ``year``
+            - ``first`` for the first author
+            - ``last`` for the last author
+            - ``authors`` for the list of authors
+            - ``arxiv_version`` (discarded if no arXiv version in the BibTeX)
+
+        Filename is slugified after applying the masks.
 
     :param bibtex: A dict representing a BibTeX entry, as the one from \
             ``bibtexparser`` output.

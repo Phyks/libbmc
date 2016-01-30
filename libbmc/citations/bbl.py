@@ -1,8 +1,6 @@
 """
 This files contains all the functions to extract DOIs of citations from .bbl
 files.
-
-# TODO: Unittests
 """
 import os
 import re

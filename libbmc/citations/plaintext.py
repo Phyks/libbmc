@@ -1,8 +1,6 @@
 """
 This files contains all the functions to extract DOIs of citations from
 plaintext files.
-
-# TODO: Unittests
 """
 import os
 import requests

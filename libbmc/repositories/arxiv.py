@@ -443,8 +443,6 @@ def get_sources(arxiv_id):
             canonical form.
     :returns: A ``TarFile`` object of the sources of the arXiv preprint or \
             ``None``.
-
-    # TODO: Unittests
     """
     try:
         r = requests.get(ARXIV_EPRINT_URL.format(arxiv_id=arxiv_id))
@@ -468,8 +466,6 @@ def get_bbl(arxiv_id):
             a canonical form.
     :returns: A list of the full text of the ``.bbl`` files (if any) \
             or ``None``.
-
-    # TODO: Unittests
     """
     tf = get_sources(arxiv_id)
     bbl_files = [i for i in tf.getmembers() if i.name.endswith(".bbl")]
@@ -490,9 +486,6 @@ def get_citations(arxiv_id):
     :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
             a canonical form.
     :returns: A dict of cleaned plaintext citations and their associated DOI.
-
-    >>> get_citations("1401.2910")
-    # TODO: Unittests
     """
     dois = {}
     # Get the list of bbl files for this preprint

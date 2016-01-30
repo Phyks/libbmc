@@ -1,8 +1,6 @@
 """
 This files contains all the functions to extract DOIs of citations from
 BibTeX files.
-
-# TODO: Unittests
 """
 import bibtexparser
 import os
