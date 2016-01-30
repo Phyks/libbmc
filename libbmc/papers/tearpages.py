@@ -10,12 +10,14 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 from PyPDF2.utils import PdfReadError
 
 
-# Dict of bad publishers which adds an extra useless first page, which can be
+# Dict of bad journals which adds an extra useless first page, which can be
 # teared. Please, submit a PR to include new ones which I may not be aware of!
-# This dict associates the publisher string to look for and to a list of pages
+# This dict associates the journal string to look for and to a list of pages
 # to tear.
-BAD_PUBLISHERS = {
-    "IOP": [0]
+BAD_JOURNALS = {
+    "epl": [0],
+    "journal of modern optics": [0],
+    "new journal of physics": [0]
 }
 
 
@@ -87,12 +89,12 @@ def tearpage_needed(bibtex):
             whether tearing is needed.
     :returns: A list of pages to tear.
     """
-    for p in BAD_PUBLISHERS:
-        if p in bibtex.get("publisher", ""):
-            # Bad publisher is found, add pages to tear
-            return BAD_PUBLISHERS[p]
+    for p in BAD_JOURNALS:
+        if p in bibtex.get("journal", "").lower():
+            # Bad journal is found, add pages to tear
+            return BAD_JOURNALS[p]
 
-    # If no bad publishers are found, return an empty list
+    # If no bad journals are found, return an empty list
     return []
 
 
