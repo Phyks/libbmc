@@ -26,7 +26,7 @@ def download(url, proxies=[None]):
             associated content-type. Returns ``(None, None)`` if it was \
             unable to download the document.
 
-    # TODO: Unittests
+    >>> download("http://arxiv.org/pdf/1312.4006.pdf") # doctest: +SKIP
     """
     # Loop over all available connections
     for proxy in proxies:
