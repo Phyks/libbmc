@@ -4,44 +4,121 @@ the first page from a PDF file, and actually tear it.
 
 TODO: Unittests
 """
-import tearpages
+import shutil
+import tempfile
+from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2.utils import PdfReadError
 
 
-# List of bad publishers which adds an extra useless first page, which can be
+# Dict of bad publishers which adds an extra useless first page, which can be
 # teared. Please, submit a PR to include new ones which I may not be aware of!
-BAD_PUBLISHERS = [
-    "IOP"
-]
+# This dict associates the publisher string to look for and to a list of pages
+# to tear.
+BAD_PUBLISHERS = {
+    "IOP": [0]
+}
+
+
+def fixPdf(pdfFile, destination):
+    """
+    Fix malformed pdf files when data are present after '%%EOF'
+
+    ..note ::
+
+        Originally from sciunto, https://github.com/sciunto/tear-pages
+
+    :param pdfFile: PDF filepath
+    :param destination: destination
+    """
+    tmp = tempfile.NamedTemporaryFile()
+    output = open(tmp.name, 'wb')
+    with open(pdfFile, "rb") as fh:
+        with open(pdfFile, "rb") as fh:
+            for line in fh:
+                output.write(line)
+                if b'%%EOF' in line:
+                    break
+    output.close()
+    shutil.copy(tmp.name, destination)
+
+
+def tearpage_backend(filename, teared_pages=[0]):
+    """
+    Copy filename to a tempfile, write pages to filename except the teared one.
+
+    ..note ::
+
+        Adapted from sciunto's code, https://github.com/sciunto/tear-pages
+
+    :param filename: PDF filepath
+    :param teared_pages: Numbers of the pages to tear. Default to first page \
+            only.
+    """
+    # Copy the pdf to a tmp file
+    tmp = tempfile.NamedTemporaryFile()
+    shutil.copy(filename, tmp.name)
+
+    # Read the copied pdf
+    try:
+        input_file = PdfFileReader(open(tmp.name, 'rb'))
+    except PdfReadError:
+        fixPdf(filename, tmp.name)
+        input_file = PdfFileReader(open(tmp.name, 'rb'))
+    # Seek for the number of pages
+    num_pages = input_file.getNumPages()
+
+    # Write pages excepted the first one
+    output_file = PdfFileWriter()
+    for i in range(num_pages):
+        if i in teared_pages:
+            continue
+        output_file.addPage(input_file.getPage(i))
+
+    tmp.close()
+    outputStream = open(filename, "wb")
+    output_file.write(outputStream)
 
 
 def tearpage_needed(bibtex):
     """
-    Check whether a given paper needs the first page to be teared or not.
+    Check whether a given paper needs some pages to be teared or not.
 
     :params bibtex: The bibtex entry associated to the paper, to guess \
             whether tearing is needed.
-    :returns: A boolean indicating whether first page should be teared or not.
+    :returns: A list of pages to tear.
     """
-    # For each bad publisher, look for it in the publisher bibtex entry
-    has_bad_publisher = [p in bibtex.get("publisher", [])
-                         for p in BAD_PUBLISHERS]
-    # Return True iff there is at least one bad publisher
-    return (True in has_bad_publisher)
+    for p in BAD_PUBLISHERS:
+        if p in bibtex.get("publisher", ""):
+            # Bad publisher is found, add pages to tear
+            return BAD_PUBLISHERS[p]
+
+    # If no bad publishers are found, return an empty list
+    return []
 
 
-def tearpage(filename, bibtex=None):
+def tearpage(filename, bibtex=None, force=False):
     """
-    Tear the first page of the file if needed.
+    Tear the some pages of the file if needed.
 
     :params filename: Path to the file to handle.
     :params bibtex: BibTeX dict associated to this file, as the one given by \
-            ``bibtexparser``.
+            ``bibtexparser``. (Mandatory if force is not specified)
+    :params force: If a list of integers, force the tearing of the \
+            specified pages. (Optional)
     :returns: A boolean indicating whether the file has been teared or not. \
-            Side effect is tearing the first page from the file.
+            Side effect is tearing the necessary pages from the file.
     """
-    if bibtex is not None and tearpage_needed(bibtex):
+    # Fetch pages to tear
+    pages_to_tear = []
+    if force is not False:
+        pages_to_tear = force
+    elif bibtex is not None:
+        pages_to_tear = tearpage_needed(bibtex)
+
+    if len(pages_to_tear) > 0:
         # If tearing is needed, do it and return True
-        tearpages.tearpage(filename)
+        tearpage_backend(filename, teared_pages=pages_to_tear)
         return True
+
     # Else, simply return False
     return False
