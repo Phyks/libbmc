@@ -141,9 +141,9 @@ def cermine_dois(pdf_file, force_API=False, override_local=None):
     return plaintext.get_cited_DOIs(plaintext_references)
 
 
-def grobid(pdf_file):
+def grobid(pdf_folder, grobid_home=None, grobid_jar=None):
     """
-    Run `Grobid <https://github.com/kermitt2/grobid>`_ on a given PDF file to \
+    Run `Grobid <https://github.com/kermitt2/grobid>`_ on a given folder to \
             extract references.
 
     .. note::
@@ -151,23 +151,30 @@ def grobid(pdf_file):
         Before using this function, you have to download and build Grobid on \
                 your system. See \
                 `<https://grobid.readthedocs.org/en/latest/Install-Grobid/>`_ \
-                for more infos on this. You need Java and \
-                ``grobid-core-`<current version>`.one-jar.jar`` to be in your \
-                ``$PATH``.
+                for more infos on this. You need Java to be in your ``$PATH``.
 
-    :param pdf_file: Path to the PDF file to handle.
-    :returns: Raw output from ``Grobid`` or ``None`` if an error occurred.
+    :param pdf_folder: Folder containing the PDF files to handle.
+    :param grobid_home: Path to the grobid-home directory.
+    :param grobid_jar: Path to the built Grobid JAR file.
+    :returns: ``True``, or ``False`` if an error occurred.
     """
-    # TODO + update docstring
-    # TODO: Use https://github.com/kermitt2/grobid-example
-    subprocess.check_output(["java",
-                             "-jar", "grobid-core-0.3.0.one-jar.jar",
-                             "-Xmx1024m",  # Avoid OutOfMemoryException
-                             "-gH", "/path/to/Grobid/grobid/grobid-home",
-                             "-gP", "/path/to/Grobid/grobid-home/config/grobid.properties",
-                             "-dIn", "/path/to/input/directory",
-                             "-dOut", "/path/to/output/directory",
-                             "-exe", "processReferences"])
+    if grobid_home is None or grobid_jar is None:
+        # User should pass the correct paths
+        return False
+
+    try:
+        subprocess.call(["java",
+                         "-jar", grobid_jar,
+                         # Avoid OutOfMemoryException
+                         "-Xmx1024m",
+                         "-gH", grobid_home,
+                         "-gP", os.path.join(grobid_home,
+                                             "config/grobid.properties"),
+                         "-dIn", pdf_folder,
+                         "-exe", "processReferences"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 
 def pdfextract(pdf_file):
