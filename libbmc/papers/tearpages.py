@@ -100,7 +100,7 @@ def tearpage_needed(bibtex):
 
 def tearpage(filename, bibtex=None, force=False):
     """
-    Tear the some pages of the file if needed.
+    Tear some pages of the file if needed.
 
     :params filename: Path to the file to handle.
     :params bibtex: BibTeX dict associated to this file, as the one given by \

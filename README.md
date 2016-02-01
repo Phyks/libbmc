@@ -45,6 +45,21 @@ install the matching software (`CERMINE`, `Grobid` or `pdf-extract`). See the
 docstrings of those functions for more infos on this particular point.
 
 
+## Note on `__valid_identifiers__`
+
+`libbmc` exposes a `__valid_identifiers__` list, containing the valid
+identifier types. These are those exposing the same function as `doi` or
+`isbn` modules, in particular the extraction from a string and BibTeX
+fetching functions.
+
+If you write additional modules for others repositories, you can include them
+in the `__valid_identifiers__` list, as long as they provide these functions.
+
+This list is especially useful for the `libbmc.papers.identifiers` module,
+which is using it to loop through all the available identifier types, to fetch
+for them in the paper and retrieve BibTeX from it.
+
+
 ## License
 
 This code is licensed under an MIT license.

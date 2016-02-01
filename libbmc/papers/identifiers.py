@@ -6,10 +6,15 @@ Needs pdftotext and/or djvutxt installed on the machine.
 
 TODO: Unittests
 """
+import importlib
 import subprocess
+import sys
 
-from libbmc import doi, isbn
-from libbmc.repositories import arxiv, hal
+from libbmc import __valid_identifiers__
+
+# Import all the modules associated to __valid_identifiers__
+for type in __valid_identifiers__:
+    importlib.import_module("libbmc.%s" % (type,))
 
 
 def find_identifiers(src):
@@ -30,7 +35,7 @@ def find_identifiers(src):
 
     :params src: Path to the file to scan.
 
-    :returns: a tuple (type, identifier) or ``None`` if not found or \
+    :returns: a tuple (type, identifier) or ``(None, None)`` if not found or \
             an error occurred.
     """
     if src.endswith(".pdf"):
@@ -44,29 +49,43 @@ def find_identifiers(src):
                                   stderr=subprocess.PIPE,
                                   bufsize=1)
     else:
-        return None
+        return (None, None)
 
     while totext.poll() is None:
         extract_full = ' '.join([i.decode("utf-8").strip()
                                 for i in totext.stdout.readlines()])
-        found_isbn = isbn.extract_from_text(extract_full)
-        if isbn:
-            totext.terminate()
-            return ("isbn", found_isbn)
+        # Loop over all the valid identifier types
+        for type in __valid_identifiers__:
+            # Dynamically call the ``extract_from_text`` method for the
+            # associated module.
+            m = sys.modules.get("libbmc.%s" % (type,), None)
+            if m is None:
+                continue
+            found_id = getattr(m, "extract_from_text")(extract_full)
+            if found_id:
+                totext.terminate()
+                return (type, found_id[0])  # found_id is a list of found IDs
+    return (None, None)
 
-        found_doi = doi.extract_from_text(extract_full)
-        if doi:
-            totext.terminate()
-            return ("doi", found_doi)
 
-        found_arxiv = arxiv.extract_from_text(extract_full)
-        if arxiv:
-            totext.terminate()
-            return ("arxiv", found_arxiv)
+def get_bibtex(identifier):
+    """
+    Try to fetch BibTeX from a found identifier.
 
-        found_hal = hal.extract_from_text(extract_full)
-        if hal:
-            totext.terminate()
-            return ("hal", found_hal)
+    .. note::
 
-    return None
+        Calls the functions in the respective identifiers module.
+
+    :param identifier: a tuple (type, identifier) with a valid type.
+    :returns: A BibTeX string or ``None`` if an error occurred.
+    # TODO: Should return a BiBTeX object?
+    """
+    type, id = identifier
+    if type not in __valid_identifiers__:
+        return None
+
+    # Dynamically call the ``get_bibtex`` method from the associated module.
+    m = sys.modules.get("libbmc.%s" % (type,), None)
+    if m is None:
+        return None
+    return getattr(m, "get_bibtex")(id)

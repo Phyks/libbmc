@@ -13,8 +13,12 @@ from urllib.error import HTTPError
 from requests.exceptions import RequestException
 
 
+from libbmc import __valid_identifiers__
 from libbmc import tools
 from libbmc.citations import bbl
+
+# Append arXiv to the valid identifiers list
+__valid_identifiers__ += ["repositories.arxiv"]
 
 
 ARXIV_IDENTIFIER_FROM_2007 = r"\d{4}\.\d{4,5}(v\d+)?"
@@ -305,12 +309,14 @@ def extract_from_text(text):
     Extract arXiv IDs from a text.
 
     :param text: The text to extract arXiv IDs from.
-    :returns: A list of matching arXiv IDs.
+    :returns: A list of matching arXiv IDs, in canonical form.
 
     >>> sorted(extract_from_text('1506.06690 1506.06690v1 arXiv:1506.06690 arXiv:1506.06690v1 arxiv:1506.06690 arxiv:1506.06690v1 math.GT/0309136 abcdf bar1506.06690foo mare.GG/0309136'))
-    ['1506.06690', '1506.06690v1', 'arXiv:1506.06690', 'arXiv:1506.06690v1', 'arxiv:1506.06690', 'arxiv:1506.06690v1', 'math.GT/0309136']
+    ['1506.06690', '1506.06690v1', 'math.GT/0309136']
     """
-    return tools.remove_duplicates([i[0]
+    # Remove the leading "arxiv:".
+    return tools.remove_duplicates([re.sub("arxiv:", "", i[0],
+                                           flags=re.IGNORECASE)
                                     for i in REGEX.findall(text) if i[0] != ''])
 
 
@@ -335,7 +341,7 @@ def to_URL(arxiv_ids):
 
 def to_canonical(urls):
     """
-    Convert a list of DOIs URLs to a list of canonical DOIs.
+    Convert a list of arXiv IDs to a list of canonical IDs.
 
     :param dois: A list of DOIs URLs.
     :returns: List of canonical DOIs. ``None`` if an error occurred.

@@ -5,6 +5,11 @@ import isbnlib
 
 from libbmc import doi
 
+from libbmc import __valid_identifiers__
+
+# Append ISBN to the valid identifiers list
+__valid_identifiers__ += ["isbn"]
+
 
 def is_valid(isbn):
     """

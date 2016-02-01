@@ -6,7 +6,11 @@ import requests
 
 from requests.exceptions import RequestException
 
+from libbmc import __valid_identifiers__
 from libbmc import tools
+
+# Append DOI to the valid identifiers list
+__valid_identifiers__ += ["doi"]
 
 # Taken from
 # https://stackoverflow.com/questions/27910/finding-a-doi-in-a-document-or-page/10324802#10324802
