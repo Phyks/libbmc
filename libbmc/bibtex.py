@@ -150,6 +150,10 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
     """
     Get an entry from a BibTeX file.
 
+    .. note ::
+
+        Returns the first matching entry.
+
     :param filename: The name of the BibTeX file.
     :param filter: A function returning ``True`` or ``False`` whether the \
             entry should be included or not.
