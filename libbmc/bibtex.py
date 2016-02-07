@@ -1,12 +1,11 @@
 """
 This file contains functions to deal with Bibtex files and edit them.
 
-TODO: Unittests + use bibtexparser writer
+TODO: Unittests
 """
 import bibtexparser
 import re
 
-from codecs import open
 from libbmc import tools
 
 
@@ -19,7 +18,7 @@ def dict2BibTeX(data):
     Convert a single BibTeX entry dict to a BibTeX string.
 
     :param data: A dict representing BibTeX entry, as the ones from \
-            ``bibtexparser`` output.
+            ``bibtexparser.BibDatabase.entries`` output.
     :return: A formatted BibTeX string.
     """
     bibtex = '@' + data['ENTRYTYPE'] + '{' + data['ID'] + ",\n"
@@ -30,17 +29,25 @@ def dict2BibTeX(data):
     return bibtex
 
 
+def BibDatabase2BibTeX(data):
+    """
+    Convert a BibDatabase object to a BibTeX string.
+
+    :param data: A ``bibtexparser.BibDatabase`` object.
+    :return: A formatted BibTeX string.
+    """
+    return bibtexparser.dumps(data)
+
+
 def write(filename, data):
     """
     Create a new BibTeX file.
 
     :param filename: The name of the BibTeX file to write.
-    :param data: A list of dict representing BibTeX entries, as the ones from \
-            ``bibtexparser`` output.
+    :param data: A ``bibtexparser.BibDatabase`` object.
     """
-    bibtex = "\n".join([dict2BibTeX(i) for i in data])
-    with open(filename, 'w', encoding='utf-8') as fh:
-        fh.write(bibtex)
+    with open(filename, 'w') as fh:
+        fh.write(BibDatabase2BibTeX(data))
 
 
 def append(filename, data):
@@ -48,11 +55,10 @@ def append(filename, data):
     Append some entries to a bibtex file.
 
     :param filename: The name of the BibTeX file to edit.
-    :param data: A list of dict representing BibTeX entries, as the ones from \
-            ``bibtexparser`` output.
+    :param data: A ``bibtexparser.BibDatabase`` object.
     """
-    with open(filename, 'a', encoding="utf-8") as fh:
-        fh.write("\n".join([dict2BibTeX(i) for i in data]))
+    with open(filename, 'a') as fh:
+        fh.write(BibDatabase2BibTeX(data))
 
 
 def edit(filename, identifier, data):
@@ -65,13 +71,12 @@ def edit(filename, identifier, data):
             in the BibTeX file but not in this dict will be kept as is.
     """
     # Get current bibtex
-    with open(filename, 'r', encoding="utf-8") as fh:
+    with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries_dict
 
     # Update it
     for k in data:
-        bibtex[identifier][k] = data[k]
+        bibtex.entries_dict[identifier][k] = data[k]
 
     # Write the resulting BibTeX
     write(filename, bibtex)
@@ -83,16 +88,15 @@ def replace(filename, identifier, data):
 
     :param filename: The name of the BibTeX file to edit.
     :param identifier: The id of the entry to replace, in the BibTeX file.
-    :param data: A dict representing a BibTeX entry, as the one from \
-            ``bibtexparser`` output.
+    :param data: A ``bibtexparser.BibDatabase`` object containing a single \
+            entry.
     """
     # Get current bibtex
-    with open(filename, 'r', encoding="utf-8") as fh:
+    with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries_dict
 
-    # Update the bibtex
-    bibtex[identifier] = data
+    # Use entries_dict representation to update easily
+    bibtex.entries_dict[identifier] = data.entries[0]
 
     # Write the resulting BibTeX
     write(filename, bibtex)
@@ -106,13 +110,12 @@ def delete(filename, identifier):
     :param identifier: The id of the entry to delete, in the BibTeX file.
     """
     # Get current bibtex
-    with open(filename, 'r', encoding="utf-8") as fh:
+    with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries_dict
 
     # Delete the bibtex entry
     try:
-        del(bibtex[identifier])
+        del(bibtex.entries_dict[identifier])
     except KeyError:
         pass
 
@@ -128,17 +131,17 @@ def get(filename, ignore_fields=[]):
     :param ignore_fields: An optional list of fields to strip from the BibTeX \
             file.
 
-    :returns: A list of ``bibtexparser`` dicts representing the fetched \
+    :returns: A ``bibtexparser.BibDatabase`` object representing the fetched \
             entries.
     """
     # Open bibtex file
-    with open(filename, 'r', encoding="utf-8") as fh:
+    with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries_dict
 
     # Clean the entry dict if necessary
-    bibtex = [{k: entry[k] for k in entry if k not in ignore_fields}
-              for entry in bibtex]
+    bibtex.entries_dict = [{k: entry[k]
+                            for k in entry if k not in ignore_fields}
+                           for entry in bibtex.entries_dict]
 
     return bibtex
 
@@ -157,14 +160,13 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
             first matching entry. ``None`` if entry was not found.
     """
     # Open bibtex file
-    with open(filename, 'r', encoding="utf-8") as fh:
+    with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
-    bibtex = bibtex.entries
 
     matching_entry = None
     try:
         # Try to fetch the matching entry dict
-        for entry in bibtex.items:
+        for entry in bibtex.entries.items:
             if filter(entry):
                 matching_entry = entry
     except KeyError:
@@ -175,7 +177,9 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
     matching_entry = {k: matching_entry[k]
                       for k in matching_entry if k not in ignore_fields}
 
-    return matching_entry
+    bib_db = bibtexparser.bibdatabase.BibDatabase()
+    bib_db.entries = [matching_entry]
+    return bib_db
 
 
 def get_entry(filename, identifier, ignore_fields=[]):
@@ -212,12 +216,13 @@ def to_filename(bibtex, mask=default_papers_filename_mask):
 
         Filename is slugified after applying the masks.
 
-    :param bibtex: A dict representing a BibTeX entry, as the one from \
-            ``bibtexparser`` output.
+    :param bibtex: A ``bibtexparser.BibDatabase`` object representing a \
+            BibTeX entry, as the one from ``bibtexparser`` output.
     :param mask: A Python format string.
 
     :returns: A formatted filename.
     """
+    bibtex = bibtex.entries[0]
     authors = re.split(' and ', bibtex['author'])
 
     filename = mask
