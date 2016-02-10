@@ -7,7 +7,7 @@ __valid_identifiers__ = []
 from . import bibtex, doi, fetcher, isbn  # noqa
 from . import citations, papers, repositories  # noqa
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "bibtex", "doi", "fetcher", "isbn",
