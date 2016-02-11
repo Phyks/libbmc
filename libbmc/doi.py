@@ -157,6 +157,9 @@ def get_oa_policy(doi):
 
     >>> tmp = get_oa_policy('10.1209/0295-5075/111/40005'); (tmp["published"], tmp["preprint"], tmp["postprint"], tmp["romeo_id"])
     ('can', 'can', 'can', '1896')
+
+    >>> get_oa_policy('10.1215/9780822387268') is None
+    True
     """
     try:
         r = requests.get("%s%s" % (DISSEMIN_API, doi))
@@ -166,7 +169,8 @@ def get_oa_policy(doi):
         return ([i
                  for i in result["paper"]["publications"]
                  if i["doi"] == doi][0])["policy"]
-    except (AssertionError, ValueError, KeyError, RequestException):
+    except (AssertionError, ValueError,
+            KeyError, RequestException, IndexError):
         return None
 
 
