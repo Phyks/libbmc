@@ -19,6 +19,9 @@ REGEX = re.compile(r"\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?![\"&\'])\S)+)\b",
 # Base dx.doi.org URL for redirections
 DX_URL = "http://dx.doi.org/{doi}"
 
+# Base DISSEMIN API
+DISSEMIN_API = "http://beta.dissem.in/api/"
+
 
 def is_valid(doi):
     """
@@ -130,13 +133,39 @@ def get_oa_version(doi):
     >>> get_oa_version('10.1209/0295-5075/111/40005')
     'http://arxiv.org/abs/1506.06690'
     """
-    # If DOI is a link, truncate it
     try:
-        r = requests.get("http://beta.dissem.in/api/%s" % (doi,))
+        r = requests.get("%s%s" % (DISSEMIN_API, doi))
         r.raise_for_status()
         result = r.json()
         assert(result["status"] == "ok")
         return result["paper"]["pdf_url"]
+    except (AssertionError, ValueError, KeyError, RequestException):
+        return None
+
+
+def get_oa_policy(doi):
+    """
+    Get OA policy for a given DOI.
+
+    .. note::
+
+        Uses beta.dissem.in API.
+
+    :param doi: A canonical DOI.
+    :returns: The OpenAccess policy for the associated publications, or \
+            ``None`` if unknown.
+
+    >>> tmp = get_oa_policy('10.1209/0295-5075/111/40005'); (tmp["published"], tmp["preprint"], tmp["postprint"], tmp["romeo_id"])
+    ('can', 'can', 'can', '1896')
+    """
+    try:
+        r = requests.get("%s%s" % (DISSEMIN_API, doi))
+        r.raise_for_status()
+        result = r.json()
+        assert(result["status"] == "ok")
+        return ([i
+                 for i in result["paper"]["publications"]
+                 if i["doi"] == doi][0])["policy"]
     except (AssertionError, ValueError, KeyError, RequestException):
         return None
 
