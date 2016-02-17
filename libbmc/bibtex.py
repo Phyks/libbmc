@@ -3,17 +3,18 @@ This file contains functions to deal with Bibtex files and edit them.
 
 TODO: Unittests
 """
-import bibtexparser
 import re
+
+import bibtexparser
 
 from libbmc import tools
 
 
-default_papers_filename_mask = "{first}_{last}-{journal}-{year}{arxiv_version}"
-default_books_filename_mask = "{authors} - {title}"
+DEFAULT_PAPERS_FILENAME_MASK = "{first}_{last}-{journal}-{year}{arxiv_version}"
+DEFAULT_BOOKS_FILENAME_MASK = "{authors} - {title}"
 
 
-def dict2BibTeX(data):
+def dict2bibtex(data):
     """
     Convert a single BibTeX entry dict to a BibTeX string.
 
@@ -25,11 +26,11 @@ def dict2BibTeX(data):
 
     for field in [i for i in sorted(data) if i not in ['ENTRYTYPE', 'ID']]:
         bibtex += "\t" + field + "={" + data[field] + "},\n"
-    bibtex += "}\n"
+    bibtex += "}\n\n"
     return bibtex
 
 
-def BibDatabase2BibTeX(data):
+def bibdatabase2bibtex(data):
     """
     Convert a BibDatabase object to a BibTeX string.
 
@@ -47,7 +48,7 @@ def write(filename, data):
     :param data: A ``bibtexparser.BibDatabase`` object.
     """
     with open(filename, 'w') as fh:
-        fh.write(BibDatabase2BibTeX(data))
+        fh.write(bibdatabase2bibtex(data))
 
 
 def append(filename, data):
@@ -58,7 +59,7 @@ def append(filename, data):
     :param data: A ``bibtexparser.BibDatabase`` object.
     """
     with open(filename, 'a') as fh:
-        fh.write(BibDatabase2BibTeX(data))
+        fh.write(bibdatabase2bibtex(data))
 
 
 def edit(filename, identifier, data):
@@ -75,8 +76,8 @@ def edit(filename, identifier, data):
         bibtex = bibtexparser.load(fh)
 
     # Update it
-    for k in data:
-        bibtex.entries_dict[identifier][k] = data[k]
+    # TODO: Not working
+    bibtex.entries_dict[identifier] = data.entries[0]
 
     # Write the resulting BibTeX
     write(filename, bibtex)
@@ -96,6 +97,7 @@ def replace(filename, identifier, data):
         bibtex = bibtexparser.load(fh)
 
     # Use entries_dict representation to update easily
+    # TODO: Not working
     bibtex.entries_dict[identifier] = data.entries[0]
 
     # Write the resulting BibTeX
@@ -114,8 +116,9 @@ def delete(filename, identifier):
         bibtex = bibtexparser.load(fh)
 
     # Delete the bibtex entry
+    # TODO: Not working
     try:
-        del(bibtex.entries_dict[identifier])
+        del bibtex.entries_dict[identifier]
     except KeyError:
         pass
 
@@ -123,7 +126,7 @@ def delete(filename, identifier):
     write(filename, bibtex)
 
 
-def get(filename, ignore_fields=[]):
+def get(filename, ignore_fields=None):
     """
     Get all entries from a BibTeX file.
 
@@ -134,19 +137,23 @@ def get(filename, ignore_fields=[]):
     :returns: A ``bibtexparser.BibDatabase`` object representing the fetched \
             entries.
     """
+    # Handle default argument
+    if ignore_fields is None:
+        ignore_fields = []
+
     # Open bibtex file
     with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
 
-    # Clean the entry dict if necessary
-    bibtex.entries_dict = [{k: entry[k]
-                            for k in entry if k not in ignore_fields}
-                           for entry in bibtex.entries_dict]
+    # Clean the entries if necessary
+    bibtex.entries = [{k: entry[k]
+                       for k in entry if k not in ignore_fields}
+                      for entry in bibtex.entries]
 
     return bibtex
 
 
-def get_entry_by_filter(filename, filter, ignore_fields=[]):
+def get_entry_by_filter(filename, filter_function, ignore_fields=None):
     """
     Get an entry from a BibTeX file.
 
@@ -155,14 +162,18 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
         Returns the first matching entry.
 
     :param filename: The name of the BibTeX file.
-    :param filter: A function returning ``True`` or ``False`` whether the \
-            entry should be included or not.
+    :param filter_function: A function returning ``True`` or ``False`` \
+            whether the entry should be included or not.
     :param ignore_fields: An optional list of fields to strip from the BibTeX \
             file.
 
     :returns: A ``bibtexparser.BibDatabase`` object representing the \
             first matching entry. ``None`` if entry was not found.
     """
+    # Handle default argument
+    if ignore_fields is None:
+        ignore_fields = []
+
     # Open bibtex file
     with open(filename, 'r') as fh:
         bibtex = bibtexparser.load(fh)
@@ -170,11 +181,14 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
     matching_entry = None
     try:
         # Try to fetch the matching entry dict
-        for entry in bibtex.entries.items:
-            if filter(entry):
+        for entry in bibtex.entries:
+            if filter_function(entry):
                 matching_entry = entry
     except KeyError:
         # If none found, return None
+        return None
+
+    if matching_entry is None:
         return None
 
     # Clean the entry dict if necessary
@@ -186,7 +200,7 @@ def get_entry_by_filter(filename, filter, ignore_fields=[]):
     return bib_db
 
 
-def get_entry(filename, identifier, ignore_fields=[]):
+def get_entry(filename, identifier, ignore_fields=None):
     """
     Get an entry from a BibTeX file.
 
@@ -198,18 +212,24 @@ def get_entry(filename, identifier, ignore_fields=[]):
     :returns: A ``bibtexparser.BibDatabase`` object representing the \
             fetched entry. ``None`` if entry was not found.
     """
+    # Handle default argument
+    if ignore_fields is None:
+        ignore_fields = []
+
     return get_entry_by_filter(filename,
                                lambda x: x["ID"] == identifier,
                                ignore_fields)
 
 
-def to_filename(bibtex, mask=default_papers_filename_mask):
+def to_filename(data,
+                mask=DEFAULT_PAPERS_FILENAME_MASK,
+                extra_formatters=None):
     """
     Convert a bibtex entry to a formatted filename according to a given mask.
 
     .. note ::
 
-        Available masks out of the box are:
+        Available formatters out of the box are:
             - ``journal``
             - ``title``
             - ``year``
@@ -220,28 +240,46 @@ def to_filename(bibtex, mask=default_papers_filename_mask):
 
         Filename is slugified after applying the masks.
 
-    :param bibtex: A ``bibtexparser.BibDatabase`` object representing a \
+    :param data: A ``bibtexparser.BibDatabase`` object representing a \
             BibTeX entry, as the one from ``bibtexparser`` output.
     :param mask: A Python format string.
+    :param extra_formatters: A dict of format string (in the mask) and \
+            associated lambdas to perform the formatting.
 
     :returns: A formatted filename.
     """
-    bibtex = bibtex.entries[0]
-    authors = re.split(' and ', bibtex['author'])
+    # Handle default argument
+    if extra_formatters is None:
+        extra_formatters = {}
 
-    filename = mask
-    filename = filename.format(journal=bibtex.get("journal", default=""))
-    filename = filename.format(title=bibtex.get("title", default=""))
-    filename = filename.format(year=bibtex.get("year", default=""))
+    entry = data.entries[0]
+    authors = re.split(' and ', entry['author'])
 
-    filename = filename.format(first=authors[0].split(',')[0].strip())
-    filename = filename.format(last=authors[-1].split(',')[0].strip())
-    filename = filename.format(authors=", ".join(
-        [i.split(',')[0].strip() for i in authors]))
+    formatters = {
+        "journal": "",
+        "title": "",
+        "year": "",
+        "first": "",
+        "last": "",
+        "authors": "",
+        "arxiv_version": ""
+    }
+
+    formatters["journal"] = entry.get("journal", "")
+    formatters["title"] = entry.get("title", "")
+    formatters["year"] = entry.get("year", "")
+
+    formatters["first"] = authors[0].split(',')[0].strip()
+    formatters["last"] = authors[-1].split(',')[0].strip()
+    formatters["authors"] = ", ".join([i.split(',')[0].strip()
+                                       for i in authors])
+
+    for extra_formatter in extra_formatters:
+        formatters[extra_formatter] = extra_formatters[extra_formatter](entry)
 
     arxiv_version = ""
-    if "eprint" in bibtex:
-        arxiv_version = '-' + bibtex['eprint'][bibtex['eprint'].rfind('v'):]
-    filename = filename.format(arxiv_version=arxiv_version)
+    if "eprint" in entry:
+        arxiv_version = '-' + entry['eprint'][entry['eprint'].rfind('v'):]
+    formatters["arxiv_version"] = arxiv_version
 
-    return tools.slugify(filename)
+    return tools.slugify(mask.format(**formatters))

@@ -8,4 +8,4 @@ with scientific papers.
 # Global list of valid paper identifier types. See README.md.
 __valid_identifiers__ = []
 
-__version__ = "0.1.3.1"
+__version__ = "0.2"
