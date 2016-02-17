@@ -108,7 +108,10 @@ def batch(iterable, size):
     item = iter(iterable)
     while True:
         batch_iterator = islice(item, size)
-        yield chain([next(batch_iterator)], batch_iterator)
+        try:
+            yield chain([next(batch_iterator)], batch_iterator)
+        except StopIteration:
+            return
 
 
 def remove_urls(text):
