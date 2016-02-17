@@ -18,7 +18,6 @@ from requests.exceptions import RequestException
 
 from libbmc import __valid_identifiers__
 from libbmc import tools
-from libbmc.citations import bbl
 
 # Append arXiv to the valid identifiers list
 __valid_identifiers__ += ["repositories.arxiv"]
@@ -475,25 +474,3 @@ def get_bbl(arxiv_id):
     bbl_files = [tar_file.extractfile(member).read().decode(tarfile.ENCODING)
                  for member in bbl_files]
     return bbl_files
-
-
-def get_citations(arxiv_id):
-    """
-    Get the DOIs cited by a given preprint.
-
-    .. note::
-
-        Bulk download of sources from arXiv is not permitted by their API. \
-                You should have a look at http://arxiv.org/help/bulk_data_s3.
-
-    :param arxiv_id: The arXiv id (e.g. ``1401.2910`` or ``1401.2910v1``) in \
-            a canonical form.
-    :returns: A dict of cleaned plaintext citations and their associated DOI.
-    """
-    dois = {}
-    # Get the list of bbl files for this preprint
-    bbl_files = get_bbl(arxiv_id)
-    for bbl_file in bbl_files:
-        # Fetch the cited DOIs for each of the bbl files
-        dois.update(bbl.get_cited_dois(bbl_file))
-    return dois

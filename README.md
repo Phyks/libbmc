@@ -59,6 +59,9 @@ This list is especially useful for the `libbmc.papers.identifiers` module,
 which is using it to loop through all the available identifier types, to fetch
 for them in the paper and retrieve BibTeX from it.
 
+You can also write a specific citation extraction module for this repository
+in `libbmc/citations/repositories/{REPOSITORY}.py`.
+
 
 ## License
 

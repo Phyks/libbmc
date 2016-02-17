@@ -1,5 +1,5 @@
 """
-This files contains all the functions to extract DOIs of citations from
+This file contains all the functions to extract DOIs of citations from
 BibTeX files.
 """
 import os
