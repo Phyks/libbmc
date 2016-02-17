@@ -3,9 +3,10 @@ This files contains all the functions to extract DOIs of citations from
 PDF files.
 """
 import os
-import requests
 import subprocess
 import xml.etree.ElementTree as ET
+
+import requests
 
 from requests.exceptions import RequestException
 
@@ -17,7 +18,7 @@ CERMINE_BASE_URL = "http://cermine.ceon.pl/"
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def cermine(pdf_file, force_API=False, override_local=None):
+def cermine(pdf_file, force_api=False, override_local=None):
     """
     Run `CERMINE <https://github.com/CeON/CERMINE>`_ to extract metadata from \
             the given PDF file, to retrieve citations (and more) from the \
@@ -44,7 +45,7 @@ def cermine(pdf_file, force_API=False, override_local=None):
                 the CERMINE API terms.
 
     :param pdf_file: Path to the PDF file to handle.
-    :param force_API: Force the use of the Cermine API \
+    :param force_api: Force the use of the Cermine API \
             (and do not try to use a local JAR file). Defaults to ``False``.
     :param override_local: Use this specific JAR file, instead of the one at \
             the default location (``libbmc/external/cermine.jar``).
@@ -55,23 +56,23 @@ def cermine(pdf_file, force_API=False, override_local=None):
         # Check if we want to load the local JAR from a specific path
         local = override_local
         # Else, try to stat the JAR file at the expected local path
-        if (local is None) and (not force_API):
+        if (local is None) and (not force_api):
             if os.path.isfile(os.path.join(SCRIPT_DIR,
                                            "../external/cermine.jar")):
                 local = os.path.join(SCRIPT_DIR,
                                      "../external/cermine.jar")
 
         # If we want to force the API use, or we could not get a local JAR
-        if force_API or (local is None):
+        if force_api or (local is None):
             print("Using API")
             with open(pdf_file, "rb") as fh:
-                    # Query the API
-                    r = requests.post(
-                        CERMINE_BASE_URL + "extract.do",
-                        headers={"Content-Type": "application/binary"},
-                        files={"file": fh}
-                    )
-                    return r.text
+                # Query the API
+                request = requests.post(
+                    CERMINE_BASE_URL + "extract.do",
+                    headers={"Content-Type": "application/binary"},
+                    files={"file": fh}
+                )
+                return request.text
         # Else, use the local JAR file
         else:
             return subprocess.check_output([
@@ -86,7 +87,7 @@ def cermine(pdf_file, force_API=False, override_local=None):
         return None
 
 
-def cermine_dois(pdf_file, force_API=False, override_local=None):
+def cermine_dois(pdf_file, force_api=False, override_local=None):
     """
     Run `CERMINE <https://github.com/CeON/CERMINE>`_ to extract DOIs of cited \
             papers from a PDF file.
@@ -116,7 +117,7 @@ def cermine_dois(pdf_file, force_API=False, override_local=None):
                 try to match them on Crossref to get DOIs.
 
     :param pdf_file: Path to the PDF file to handle.
-    :param force_API: Force the use of the Cermine API \
+    :param force_api: Force the use of the Cermine API \
             (and do not try to use a local JAR file). Defaults to ``False``.
     :param override_local: Use this specific JAR file, instead of the one at \
             the default location (``libbmc/external/cermine.jar``).
@@ -126,7 +127,7 @@ def cermine_dois(pdf_file, force_API=False, override_local=None):
     #    * Do not convert to plain text, but use the extra metadata from
     #      CERMINE
     # Call CERMINE on the PDF file
-    cermine_output = cermine(pdf_file, force_API, override_local)
+    cermine_output = cermine(pdf_file, force_api, override_local)
     # Parse the resulting XML
     root = ET.fromstring(cermine_output)
     plaintext_references = [
@@ -136,7 +137,7 @@ def cermine_dois(pdf_file, force_API=False, override_local=None):
             ET.tostring(e, method="text").decode("utf-8").replace(e.text, ""))
         for e in root.iter("mixed-citation")]
     # Call the plaintext methods to fetch DOIs
-    return plaintext.get_cited_DOIs(plaintext_references)
+    return plaintext.get_cited_dois(plaintext_references)
 
 
 def grobid(pdf_folder, grobid_home=None, grobid_jar=None):
@@ -156,6 +157,8 @@ def grobid(pdf_folder, grobid_home=None, grobid_jar=None):
     :param grobid_jar: Path to the built Grobid JAR file.
     :returns: ``True``, or ``False`` if an error occurred.
     """
+    # TODO: Should be using https://github.com/kermitt2/grobid-example and
+    # BibTeX backend.
     if grobid_home is None or grobid_jar is None:
         # User should pass the correct paths
         return False
@@ -234,4 +237,4 @@ def pdfextract_dois(pdf_file):
     root = ET.fromstring(references)
     plaintext_references = [e.text for e in root.iter("reference")]
     # Call the plaintext methods to fetch DOIs
-    return plaintext.get_cited_DOIs(plaintext_references)
+    return plaintext.get_cited_dois(plaintext_references)

@@ -55,7 +55,7 @@ def is_valid(doi):
     False
     """
     match = REGEX.match(doi)
-    return ((match is not None) and (match.group(0) == doi))
+    return (match is not None) and (match.group(0) == doi)
 
 
 def extract_from_text(text):
@@ -71,17 +71,17 @@ def extract_from_text(text):
     return tools.remove_duplicates(REGEX.findall(text))
 
 
-def to_URL(dois):
+def to_url(dois):
     """
     Convert a list of canonical DOIs to a list of DOIs URLs.
 
     :param dois: List of canonical DOIs. Can also be a single canonical DOI.
     :returns: A list of DOIs URLs (resp. a single value).
 
-    >>> to_URL(['10.1209/0295-5075/111/40005'])
+    >>> to_url(['10.1209/0295-5075/111/40005'])
     ['http://dx.doi.org/10.1209/0295-5075/111/40005']
 
-    >>> to_URL('10.1209/0295-5075/111/40005')
+    >>> to_url('10.1209/0295-5075/111/40005')
     'http://dx.doi.org/10.1209/0295-5075/111/40005'
     """
     if isinstance(dois, list):
@@ -110,13 +110,7 @@ def to_canonical(urls):
     >>> to_canonical(['aaaa']) is None
     True
     """
-    try:
-        if isinstance(urls, list):
-            return [next(iter(extract_from_text(url))) for url in urls]
-        else:
-            return next(iter(extract_from_text(urls)))
-    except StopIteration:
-        return None
+    return tools.map_or_apply(extract_from_text, urls)
 
 
 def get_oa_version(doi):
@@ -134,10 +128,10 @@ def get_oa_version(doi):
     'http://arxiv.org/abs/1506.06690'
     """
     try:
-        r = requests.get("%s%s" % (DISSEMIN_API, doi))
-        r.raise_for_status()
-        result = r.json()
-        assert(result["status"] == "ok")
+        request = requests.get("%s%s" % (DISSEMIN_API, doi))
+        request.raise_for_status()
+        result = request.json()
+        assert result["status"] == "ok"
         return result["paper"]["pdf_url"]
     except (AssertionError, ValueError, KeyError, RequestException):
         return None
@@ -162,10 +156,10 @@ def get_oa_policy(doi):
     True
     """
     try:
-        r = requests.get("%s%s" % (DISSEMIN_API, doi))
-        r.raise_for_status()
-        result = r.json()
-        assert(result["status"] == "ok")
+        request = requests.get("%s%s" % (DISSEMIN_API, doi))
+        request.raise_for_status()
+        result = request.json()
+        assert result["status"] == "ok"
         return ([i
                  for i in result["paper"]["publications"]
                  if i["doi"] == doi][0])["policy"]
@@ -185,8 +179,8 @@ def get_linked_version(doi):
     'http://stacks.iop.org/0295-5075/111/i=4/a=40005?key=crossref.9ad851948a976ecdf216d4929b0b6f01'
     """
     try:
-        r = requests.head(to_URL(doi))
-        return r.headers.get("location")
+        request = requests.head(to_url(doi))
+        return request.headers.get("location")
     except RequestException:
         return None
 
@@ -206,10 +200,10 @@ def get_bibtex(doi):
     '@article{Verney_2015,\\n\\tdoi = {10.1209/0295-5075/111/40005},\\n\\turl = {http://dx.doi.org/10.1209/0295-5075/111/40005},\\n\\tyear = 2015,\\n\\tmonth = {aug},\\n\\tpublisher = {{IOP} Publishing},\\n\\tvolume = {111},\\n\\tnumber = {4},\\n\\tpages = {40005},\\n\\tauthor = {Lucas Verney and Lev Pitaevskii and Sandro Stringari},\\n\\ttitle = {Hybridization of first and second sound in a weakly interacting Bose gas},\\n\\tjournal = {{EPL}}\\n}'
     """
     try:
-        r = requests.get(to_URL(doi),
-                         headers={"accept": "application/x-bibtex"})
-        r.raise_for_status()
-        assert(r.headers.get("content-type") == "application/x-bibtex")
-        return r.text
+        request = requests.get(to_url(doi),
+                               headers={"accept": "application/x-bibtex"})
+        request.raise_for_status()
+        assert request.headers.get("content-type") == "application/x-bibtex"
+        return request.text
     except (RequestException, AssertionError):
         return None

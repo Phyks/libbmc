@@ -37,7 +37,7 @@ def get_plaintext_citations(file):
     return cleaned_citations
 
 
-def get_cited_DOIs(file):
+def get_cited_dois(file):
     """
     Get the DOIs of the papers cited in a plaintext file. The file should \
             have one citation per line.
@@ -66,29 +66,29 @@ def get_cited_DOIs(file):
     # Try to get the DOI directly from the citation
     for citation in plaintext_citations[:]:
         # Some citations already contain a DOI so try to match it directly
-        matched_DOIs = doi.extract_from_text(citation)
-        if len(matched_DOIs) > 0:
+        matched_dois = doi.extract_from_text(citation)
+        if len(matched_dois) > 0:
             # Add the DOI and go on
-            dois[citation] = next(iter(matched_DOIs))
+            dois[citation] = next(iter(matched_dois))
             continue
         # Same thing for arXiv id
-        matched_arXiv = arxiv.extract_from_text(citation)
-        if len(matched_arXiv) > 0:
+        matched_arxiv = arxiv.extract_from_text(citation)
+        if len(matched_arxiv) > 0:
             # Add the associated DOI and go on
-            dois[citation] = arxiv.to_DOI(next(iter(matched_arXiv)))
+            dois[citation] = arxiv.to_doi(next(iter(matched_arxiv)))
             continue
         # If no match found, stack it for next step
         # Note to remove URLs in the citation as the plaintext citations can
         # contain URLs and they are bad for the CrossRef API.
-        crossref_queue.append(tools.remove_URLs(citation))
+        crossref_queue.append(tools.remove_urls(citation))
 
     # Do batch with remaining papers, to prevent from the timeout of CrossRef
     for batch in tools.batch(crossref_queue, CROSSREF_MAX_BATCH_SIZE):
         batch = [i for i in batch]
         try:
             # Fetch results from CrossRef
-            r = requests.post(CROSSREF_LINKS_API_URL, json=batch)
-            for result in r.json()["results"]:
+            request = requests.post(CROSSREF_LINKS_API_URL, json=batch)
+            for result in request.json()["results"]:
                 # Try to get a DOI
                 try:
                     dois[result["text"]] = result["doi"]

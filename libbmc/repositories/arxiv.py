@@ -1,15 +1,18 @@
 """
 This file contains all the arXiv-related functions.
 """
-import arxiv2bib
-import bibtexparser
 import io
 import re
-import requests
 import tarfile
 import xml.etree.ElementTree
 
 from urllib.error import HTTPError
+
+
+import arxiv2bib
+import bibtexparser
+import requests
+
 from requests.exceptions import RequestException
 
 
@@ -268,7 +271,7 @@ def is_valid(arxiv_id):
     False
     """
     match = REGEX.match(arxiv_id)
-    return ((match is not None) and (match.group(0) == arxiv_id))
+    return  (match is not None) and (match.group(0) == arxiv_id)
 
 
 def get_bibtex(arxiv_id):
@@ -320,17 +323,17 @@ def extract_from_text(text):
                                     for i in REGEX.findall(text) if i[0] != ''])
 
 
-def to_URL(arxiv_ids):
+def to_url(arxiv_ids):
     """
     Convert a list of canonical DOIs to a list of DOIs URLs.
 
     :param dois: List of canonical DOIs.
     :returns: A list of DOIs URLs.
 
-    >>> to_URL('1506.06690')
+    >>> to_url('1506.06690')
     'http://arxiv.org/abs/1506.06690'
 
-    >>> to_URL('1506.06690v1')
+    >>> to_url('1506.06690v1')
     'http://arxiv.org/abs/1506.06690v1'
     """
     if isinstance(arxiv_ids, list):
@@ -358,16 +361,10 @@ def to_canonical(urls):
     >>> to_canonical('aaa') is None
     True
     """
-    try:
-        if isinstance(urls, list):
-            return [next(iter(extract_from_text(url))) for url in urls]
-        else:
-            return next(iter(extract_from_text(urls)))
-    except StopIteration:
-        return None
+    return tools.map_or_apply(extract_from_text, urls)
 
 
-def from_DOI(doi):
+def from_doi(doi):
     """
     Get the arXiv eprint id for a given DOI.
 
@@ -379,29 +376,29 @@ def from_DOI(doi):
     :param doi: The DOI of the resource to look for.
     :returns: The arXiv eprint id, or ``None`` if not found.
 
-    >>> from_DOI('10.1209/0295-5075/111/40005')
+    >>> from_doi('10.1209/0295-5075/111/40005')
     # Note: Test do not pass due to an arXiv API bug.
     '1506.06690'
     """
     try:
-        r = requests.get("http://export.arxiv.org/api/query",
-                         params={
-                             "search_query": "doi:%s" % (doi,),
-                             "max_results": 1
-                         })
-        r.raise_for_status()
+        request = requests.get("http://export.arxiv.org/api/query",
+                               params={
+                                   "search_query": "doi:%s" % (doi,),
+                                   "max_results": 1
+                               })
+        request.raise_for_status()
     except RequestException:
         return None
-    e = xml.etree.ElementTree.fromstring(r.content)
-    for entry in e.iter("{http://www.w3.org/2005/Atom}entry"):
-        id = entry.find("{http://www.w3.org/2005/Atom}id").text
-        # id is an arXiv full URL. We only want the id which is the last URL
-        # component.
-        return id.split("/")[-1]
+    root = xml.etree.ElementTree.fromstring(request.content)
+    for entry in root.iter("{http://www.w3.org/2005/Atom}entry"):
+        arxiv_id = entry.find("{http://www.w3.org/2005/Atom}id").text
+        # arxiv_id is an arXiv full URL. We only want the id which is the last
+        # URL component.
+        return arxiv_id.split("/")[-1]
     return None
 
 
-def to_DOI(arxiv_id):
+def to_doi(arxiv_id):
     """
     Get the associated DOI for a given arXiv eprint.
 
@@ -413,23 +410,23 @@ def to_DOI(arxiv_id):
     :param eprint: The arXiv eprint id.
     :returns: The DOI if any, or ``None``.
 
-    >>> to_DOI('1506.06690v1')
+    >>> to_doi('1506.06690v1')
     '10.1209/0295-5075/111/40005'
 
-    >>> to_DOI('1506.06690')
+    >>> to_doi('1506.06690')
     '10.1209/0295-5075/111/40005'
     """
     try:
-        r = requests.get("http://export.arxiv.org/api/query",
-                         params={
-                             "id_list": arxiv_id,
-                             "max_results": 1
-                         })
-        r.raise_for_status()
+        request = requests.get("http://export.arxiv.org/api/query",
+                               params={
+                                   "id_list": arxiv_id,
+                                   "max_results": 1
+                               })
+        request.raise_for_status()
     except RequestException:
         return None
-    e = xml.etree.ElementTree.fromstring(r.content)
-    for entry in e.iter("{http://www.w3.org/2005/Atom}entry"):
+    root = xml.etree.ElementTree.fromstring(request.content)
+    for entry in root.iter("{http://www.w3.org/2005/Atom}entry"):
         doi = entry.find("{http://arxiv.org/schemas/atom}doi")
         if doi is not None:
             return doi.text
@@ -451,9 +448,9 @@ def get_sources(arxiv_id):
             ``None``.
     """
     try:
-        r = requests.get(ARXIV_EPRINT_URL.format(arxiv_id=arxiv_id))
-        r.raise_for_status()
-        file_object = io.BytesIO(r.content)
+        request = requests.get(ARXIV_EPRINT_URL.format(arxiv_id=arxiv_id))
+        request.raise_for_status()
+        file_object = io.BytesIO(request.content)
         return tarfile.open(fileobj=file_object)
     except (RequestException, AssertionError, tarfile.TarError):
         return None
@@ -473,9 +470,9 @@ def get_bbl(arxiv_id):
     :returns: A list of the full text of the ``.bbl`` files (if any) \
             or ``None``.
     """
-    tf = get_sources(arxiv_id)
-    bbl_files = [i for i in tf.getmembers() if i.name.endswith(".bbl")]
-    bbl_files = [tf.extractfile(member).read().decode(tarfile.ENCODING)
+    tar_file = get_sources(arxiv_id)
+    bbl_files = [i for i in tar_file.getmembers() if i.name.endswith(".bbl")]
+    bbl_files = [tar_file.extractfile(member).read().decode(tarfile.ENCODING)
                  for member in bbl_files]
     return bbl_files
 
@@ -498,5 +495,5 @@ def get_citations(arxiv_id):
     bbl_files = get_bbl(arxiv_id)
     for bbl_file in bbl_files:
         # Fetch the cited DOIs for each of the bbl files
-        dois.update(bbl.get_cited_DOIs(bbl_file))
+        dois.update(bbl.get_cited_dois(bbl_file))
     return dois

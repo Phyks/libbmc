@@ -13,8 +13,8 @@ import sys
 from libbmc import __valid_identifiers__
 
 # Import all the modules associated to __valid_identifiers__
-for type in __valid_identifiers__:
-    importlib.import_module("libbmc.%s" % (type,))
+for valid_identifier in __valid_identifiers__:
+    importlib.import_module("libbmc.%s" % (valid_identifier,))
 
 
 def find_identifiers(src):
@@ -53,18 +53,19 @@ def find_identifiers(src):
 
     while totext.poll() is None:
         extract_full = ' '.join([i.decode("utf-8").strip()
-                                for i in totext.stdout.readlines()])
+                                 for i in totext.stdout.readlines()])
         # Loop over all the valid identifier types
-        for type in __valid_identifiers__:
+        for identifier in __valid_identifiers__:
             # Dynamically call the ``extract_from_text`` method for the
             # associated module.
-            m = sys.modules.get("libbmc.%s" % (type,), None)
-            if m is None:
+            module = sys.modules.get("libbmc.%s" % (identifier,), None)
+            if module is None:
                 continue
-            found_id = getattr(m, "extract_from_text")(extract_full)
+            found_id = getattr(module, "extract_from_text")(extract_full)
             if found_id:
                 totext.terminate()
-                return (type, found_id[0])  # found_id is a list of found IDs
+                # found_id is a list of found IDs
+                return (identifier, found_id[0])
     return (None, None)
 
 
@@ -80,12 +81,12 @@ def get_bibtex(identifier):
     :returns: A BibTeX string or ``None`` if an error occurred.
     # TODO: Should return a BiBTeX object?
     """
-    type, id = identifier
-    if type not in __valid_identifiers__:
+    identifier_type, identifier_id = identifier
+    if identifier_type not in __valid_identifiers__:
         return None
 
     # Dynamically call the ``get_bibtex`` method from the associated module.
-    m = sys.modules.get("libbmc.%s" % (type,), None)
-    if m is None:
+    module = sys.modules.get("libbmc.%s" % (identifier_type,), None)
+    if module is None:
         return None
-    return getattr(m, "get_bibtex")(id)
+    return getattr(module, "get_bibtex")(identifier_id)

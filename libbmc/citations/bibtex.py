@@ -2,14 +2,19 @@
 This files contains all the functions to extract DOIs of citations from
 BibTeX files.
 """
-import bibtexparser
 import os
+
+
+import bibtexparser
 
 from bibtexparser.bparser import BibTexParser
 from bibtexparser.customization import convert_to_unicode
 
+
 from libbmc import tools
 from libbmc.citations import plaintext
+
+# TODO: Use beta.dissem.in with formatted citation
 
 
 def bibentry_as_plaintext(bibentry):
@@ -51,7 +56,7 @@ def get_plaintext_citations(bibtex):
     return bibentries
 
 
-def get_cited_DOIs(bibtex):
+def get_cited_dois(bibtex):
     """
     Get the DOIs of the papers cited in a BibTeX file.
 
@@ -71,4 +76,4 @@ def get_cited_DOIs(bibtex):
     # Get the plaintext citations from the bibtex file
     plaintext_citations = get_plaintext_citations(bibtex)
     # Use the plaintext citations parser on these citations
-    return plaintext.get_cited_DOIs(plaintext_citations)
+    return plaintext.get_cited_dois(plaintext_citations)

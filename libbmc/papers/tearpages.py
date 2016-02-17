@@ -21,7 +21,7 @@ BAD_JOURNALS = {
 }
 
 
-def fixPdf(pdfFile, destination):
+def fix_pdf(pdf_file, destination):
     """
     Fix malformed pdf files when data are present after '%%EOF'
 
@@ -33,18 +33,16 @@ def fixPdf(pdfFile, destination):
     :param destination: destination
     """
     tmp = tempfile.NamedTemporaryFile()
-    output = open(tmp.name, 'wb')
-    with open(pdfFile, "rb") as fh:
-        with open(pdfFile, "rb") as fh:
+    with open(tmp.name, 'wb') as output:
+        with open(pdf_file, "rb") as fh:
             for line in fh:
                 output.write(line)
                 if b'%%EOF' in line:
                     break
-    output.close()
     shutil.copy(tmp.name, destination)
 
 
-def tearpage_backend(filename, teared_pages=[0]):
+def tearpage_backend(filename, teared_pages=None):
     """
     Copy filename to a tempfile, write pages to filename except the teared one.
 
@@ -56,29 +54,35 @@ def tearpage_backend(filename, teared_pages=[0]):
     :param teared_pages: Numbers of the pages to tear. Default to first page \
             only.
     """
+    # Handle default argument
+    if teared_pages is None:
+        teared_pages = [0]
+
     # Copy the pdf to a tmp file
-    tmp = tempfile.NamedTemporaryFile()
-    shutil.copy(filename, tmp.name)
+    with tempfile.NamedTemporaryFile() as tmp:
+        # Copy the input file to tmp
+        shutil.copy(filename, tmp.name)
 
-    # Read the copied pdf
-    try:
-        input_file = PdfFileReader(open(tmp.name, 'rb'))
-    except PdfReadError:
-        fixPdf(filename, tmp.name)
-        input_file = PdfFileReader(open(tmp.name, 'rb'))
-    # Seek for the number of pages
-    num_pages = input_file.getNumPages()
+        # Read the copied pdf
+        # TODO: Use with syntax
+        try:
+            input_file = PdfFileReader(open(tmp.name, 'rb'))
+        except PdfReadError:
+            fix_pdf(filename, tmp.name)
+            input_file = PdfFileReader(open(tmp.name, 'rb'))
+        # Seek for the number of pages
+        num_pages = input_file.getNumPages()
 
-    # Write pages excepted the first one
-    output_file = PdfFileWriter()
-    for i in range(num_pages):
-        if i in teared_pages:
-            continue
-        output_file.addPage(input_file.getPage(i))
+        # Write pages excepted the first one
+        output_file = PdfFileWriter()
+        for i in range(num_pages):
+            if i in teared_pages:
+                continue
+            output_file.addPage(input_file.getPage(i))
 
-    tmp.close()
-    outputStream = open(filename, "wb")
-    output_file.write(outputStream)
+        tmp.close()
+        outputStream = open(filename, "wb")
+        output_file.write(outputStream)
 
 
 def tearpage_needed(bibtex):
@@ -89,16 +93,16 @@ def tearpage_needed(bibtex):
             whether tearing is needed.
     :returns: A list of pages to tear.
     """
-    for p in BAD_JOURNALS:
-        if p in bibtex.get("journal", "").lower():
+    for publisher in BAD_JOURNALS:
+        if publisher in bibtex.get("journal", "").lower():
             # Bad journal is found, add pages to tear
-            return BAD_JOURNALS[p]
+            return BAD_JOURNALS[publisher]
 
     # If no bad journals are found, return an empty list
     return []
 
 
-def tearpage(filename, bibtex=None, force=False):
+def tearpage(filename, bibtex=None, force=None):
     """
     Tear some pages of the file if needed.
 
@@ -112,7 +116,7 @@ def tearpage(filename, bibtex=None, force=False):
     """
     # Fetch pages to tear
     pages_to_tear = []
-    if force is not False:
+    if force is not None:
         pages_to_tear = force
     elif bibtex is not None:
         pages_to_tear = tearpage_needed(bibtex)

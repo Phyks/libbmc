@@ -9,9 +9,11 @@ from itertools import islice, chain
 
 # Huge URL regex taken from https://gist.github.com/gruber/8891611
 URL_REGEX = re.compile(r"(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))")
+_SLUGIFY_STRIP_RE = re.compile(r'[^\w\s-]')
+_SLUGIFY_HYPHENATE_RE = re.compile(r'[\s]+')
 
 
-def replaceAll(text, replace_dict):
+def replace_all(text, replace_dict):
     """
     Replace multiple strings in a text.
 
@@ -26,12 +28,30 @@ def replaceAll(text, replace_dict):
             substitution.
     :returns: Text after replacements.
 
-    >>> replaceAll("foo bar foo thing", {"foo": "oof", "bar": "rab"})
+    >>> replace_all("foo bar foo thing", {"foo": "oof", "bar": "rab"})
     'oof rab oof thing'
     """
     for i, j in replace_dict.items():
         text = text.replace(i, j)
     return text
+
+
+def map_or_apply(function, param):
+    """
+    Map the function on ``param``, or apply it, depending whether ``param`` \
+            is a list or an item.
+
+    :param function: The function to apply.
+    :param param: The parameter to feed the function with (list or item).
+    :returns: The computed value or ``None``.
+    """
+    try:
+        if isinstance(param, list):
+            return [next(iter(function(i))) for i in param]
+        else:
+            return next(iter(function(param)))
+    except StopIteration:
+        return None
 
 
 def clean_whitespaces(text):
@@ -85,13 +105,13 @@ def batch(iterable, size):
     >>> [list(i) for i in batch([1, 2, 3, 4, 5], 2)]
     [[1, 2], [3, 4], [5]]
     """
-    it = iter(iterable)
+    item = iter(iterable)
     while True:
-        bi = islice(it, size)
-        yield chain([next(bi)], bi)
+        batch_iterator = islice(item, size)
+        yield chain([next(batch_iterator)], batch_iterator)
 
 
-def remove_URLs(text):
+def remove_urls(text):
     """
     Remove URLs from a given text (only removes http, https and naked domains \
     URLs).
@@ -99,14 +119,10 @@ def remove_URLs(text):
     :param text: The text to remove URLs from.
     :returns: The text without URLs.
 
-    >>> remove_URLs("foobar http://example.com https://example.com foobar")
+    >>> remove_urls("foobar http://example.com https://example.com foobar")
     'foobar foobar'
     """
     return clean_whitespaces(URL_REGEX.sub("", text))
-
-
-_slugify_strip_re = re.compile(r'[^\w\s-]')
-_slugify_hyphenate_re = re.compile(r'[\s]+')
 
 
 def slugify(value):
@@ -127,5 +143,5 @@ def slugify(value):
         value = unicode_type(value)
     value = (unicodedata.normalize('NFKD', value).
              encode('ascii', 'ignore').decode('ascii'))
-    value = unicode_type(_slugify_strip_re.sub('', value).strip())
-    return _slugify_hyphenate_re.sub('_', value)
+    value = unicode_type(_SLUGIFY_STRIP_RE.sub('', value).strip())
+    return _SLUGIFY_HYPHENATE_RE.sub('_', value)

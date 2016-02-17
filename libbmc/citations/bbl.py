@@ -73,7 +73,7 @@ def get_plaintext_citations(bbl):
     return cleaned_bbl
 
 
-def get_cited_DOIs(bbl):
+def get_cited_dois(bbl):
     """
     Get the DOIs of the papers cited in a .bbl file.
 
@@ -85,4 +85,4 @@ def get_cited_DOIs(bbl):
     # Get the plaintext citations from the bbl file
     plaintext_citations = get_plaintext_citations(bbl)
     # Use the plaintext citations parser on these citations
-    return plaintext.get_cited_DOIs(plaintext_citations)
+    return plaintext.get_cited_dois(plaintext_citations)
