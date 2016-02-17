@@ -4,8 +4,8 @@ __valid_identifiers__ = []
 # Import order of the modules is important, as they will populate
 # `__valid_identifiers__` on load, and the order in this list reflects their
 # priority.
-from . import bibtex, doi, fetcher, isbn  # noqa
-from . import citations, papers, repositories  # noqa
+from libbmc import bibtex, doi, fetcher, isbn  # noqa
+from libbmc import citations, papers, repositories  # noqa
 
 __version__ = "0.1.3.1"
 
