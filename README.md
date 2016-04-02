@@ -45,6 +45,34 @@ install the matching software (`CERMINE`, `Grobid` or `pdf-extract`). See the
 docstrings of those functions for more infos on this particular point.
 
 
+## Installation
+
+Either use `pip install libbmc` or download the ZIP archive from this repo and
+install it manually using `python setup.py install`.
+
+
+## Running unittests
+
+Just run
+```
+nosetests --with-doctest
+```
+
+at the root of the Git repository to run the unittests.
+
+
+## Building the doc
+
+Just run
+
+```
+cd docs
+make html
+```
+
+Documentation will be generated in the `docs/build/html` folder.
+
+
 ## Note on `__valid_identifiers__`
 
 `libbmc` exposes a `__valid_identifiers__` list, containing the valid
